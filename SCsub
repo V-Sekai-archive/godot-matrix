@@ -1,0 +1,19 @@
+Import('env')
+
+sources = [
+    "register_types.cpp",
+    "matrix.cpp"
+]
+
+module_env = env.Clone()
+module_env.Append(CXXFLAGS=['-O2', '-std=c++11'])
+
+if ARGUMENTS.get('matrix_shared', 'no') == 'yes':
+    module_env.Append(CXXFLAGS='-fPIC')
+    module_env['LIBS'] = []
+    shared_lib = module_env.SharedLibrary(target='#bin/matrix', source=sources)
+    shared_lib_shim = shared_lib[0].name.rsplit('.', 1)[0]
+    env.Append(LIBS=[shared_lib_shim])
+    env.Append(LIBPATH=['#bin'])
+else:
+    module_env.add_source_files(env.modules_sources, sources)
