@@ -1,0 +1,171 @@
+[gd_scene load_steps=3 format=2]
+
+[sub_resource type="GDScript" id=1]
+
+script/source = "extends Node
+
+# class member variables go here, for example:
+# var a = 2
+# var b = \"textvar\"
+
+func _ready():
+	get_node(\"MatrixClient\").start_listening()"
+
+[sub_resource type="GDScript" id=2]
+
+script/source = "extends Panel
+
+var room_id = \"!RtOeFVSpNUJHGLYYTh:vurpo.fi\"
+
+func _ready():
+	pass
+
+func timeline_event(event):
+	if (event['room_id'] == room_id):
+		if (event['type'] == \"m.room.message\" and event.has('content') and event['content'].has('body')):
+			get_node(\"messages\").text += \"\\n<\"+event['sender']+\"> \"+event['content']['body']
+		elif (event['type'] == \"m.room.name\"):
+			get_node(\"messages\").text += \"\\n\"+event['sender']+\" changed the room name to \"+event['content']['name']
+		elif (event['type'] == \"m.room.topic\"):
+			get_node(\"messages\").text += \"\\n\"+event['sender']+\" changed the topic to \"+event['content']['topic']
+			
+
+func send_message():
+	if (get_node(\"messagebox\").text != \"\"):
+		get_node(\"../MatrixClient\").get_rooms()[room_id].send_text_message(get_node(\"messagebox\").text)
+		get_node(\"messagebox\").clear()
+
+func send_message_(text):
+	send_message()
+
+func ephemeral_event(event):
+	if (event['room_id'] == room_id):
+		if (event['type'] == \"m.typing\"):
+			if (event['content']['user_ids'].size() == 0):
+				get_node(\"typing\").text = \"\"
+			elif (event['content']['user_ids'].size() == 1):
+				get_node(\"typing\").text = event['content']['user_ids'][0] + \" is typing\"
+			else:
+				var typing_text = String(event['content']['user_ids'])
+				typing_text = typing_text.substr(1, typing_text.length()-2)
+				
+				get_node(\"typing\").text = typing_text + \" are typing\"
+
+func state_event(event):
+	if (event['room_id'] == room_id):
+		get_node(\"room_name\").set_text(\"Room name: \"+get_node(\"../MatrixClient\").get_rooms()[room_id].get_name())
+		get_node(\"room_topic\").set_text(\"Topic: \"+get_node(\"../MatrixClient\").get_rooms()[room_id].get_topic())"
+
+[node name="Node" type="Node"]
+
+script = SubResource( 1 )
+
+[node name="MatrixClient" type="MatrixClient" parent="."]
+
+hs_name = "https://vurpo.fi"
+auth_token = "MDAxNmxvY2F0aW9uIHZ1cnBvLmZpCjAwMTNpZGVudGlmaWVyIGtleQowMDEwY2lkIGdlbiA9IDEKMDAyN2NpZCB1c2VyX2lkID0gQGdvZG90X3Rlc3Q6dnVycG8uZmkKMDAxNmNpZCB0eXBlID0gYWNjZXNzCjAwMjFjaWQgbm9uY2UgPSBra2FWTl8sZm1Xd1YmWW4qCjAwMmZzaWduYXR1cmUgMdnRwn8uCWb_E-lIzGvGaGdJ7YAta_g3W6Y-7Ip88X0K"
+sync_token = ""
+
+[node name="Panel" type="Panel" parent="."]
+
+margin_right = 1010.0
+margin_bottom = 590.0
+rect_clip_content = false
+mouse_filter = 0
+script = SubResource( 2 )
+
+[node name="messagebox" type="LineEdit" parent="Panel"]
+
+margin_left = 20.0
+margin_top = 530.0
+margin_right = 860.0
+margin_bottom = 560.0
+rect_clip_content = false
+mouse_filter = 0
+expand_to_len = false
+focus_mode = 2
+placeholder_text = "Type a message..."
+placeholder_alpha = 0.6
+caret_blink = false
+caret_blink_speed = 0.65
+
+[node name="send" type="Button" parent="Panel"]
+
+margin_left = 870.0
+margin_top = 530.0
+margin_right = 990.0
+margin_bottom = 560.0
+rect_clip_content = false
+mouse_filter = 0
+toggle_mode = false
+enabled_focus_mode = 2
+shortcut = null
+group = null
+text = "send"
+flat = false
+
+[node name="messages" type="Label" parent="Panel"]
+
+margin_left = 20.0
+margin_top = 80.0
+margin_right = 990.0
+margin_bottom = 510.0
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 0
+valign = 2
+autowrap = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="typing" type="Label" parent="Panel"]
+
+margin_left = 20.0
+margin_top = 565.0
+margin_right = 850.0
+margin_bottom = 585.0
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 0
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="room_topic" type="Label" parent="Panel"]
+
+margin_left = 20.0
+margin_top = 40.0
+margin_right = 990.0
+margin_bottom = 60.0
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 0
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="room_name" type="Label" parent="Panel"]
+
+margin_left = 20.0
+margin_top = 20.0
+margin_right = 990.0
+margin_bottom = 40.0
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 0
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[connection signal="ephemeral_event" from="MatrixClient" to="Panel" method="ephemeral_event"]
+
+[connection signal="state_event" from="MatrixClient" to="Panel" method="state_event"]
+
+[connection signal="timeline_event" from="MatrixClient" to="Panel" method="timeline_event"]
+
+[connection signal="text_entered" from="Panel/messagebox" to="Panel" method="send_message_"]
+
+[connection signal="pressed" from="Panel/send" to="Panel" method="send_message"]
+
+
