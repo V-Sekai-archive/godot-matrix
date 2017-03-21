@@ -1,4 +1,4 @@
-#Godot Engine module for interacting with the Matrix protocol
+# Godot Engine module for interacting with the Matrix protocol
 
 _Warning! As of 2017-03-22, this module is unfinished and many important pieces still don't exist! Use at own risk, and beware that many features simply don't exist yet._
 
@@ -6,7 +6,7 @@ This is a module for integrating a [Matrix](https://matrix.org) client into your
 
 Matrix is an open protocol and network which can be used for persistent communication (for example IM).
 
-##Usage
+## Usage
 
 There is a new node called `MatrixClient`. This represents a client. Set the homeserver address in the inspector or using `.set_hs_name(String name)`, then either log in using `.login(String username, String password)` _or_ set the access token in the inspector or using `.set_auth_token(String token)`. When you login you will get an access token for a session, and if you save this access token, you'll be able to continue using the same session at a later point. If the client is logged in (has an access token), calling `.logout()` will log out the current session.
 
@@ -32,7 +32,7 @@ Sending events and state changes, and interacting with the server etc. is still 
 
 There is an example Godot project in this repo, which contains a simple IM client to demonstrate how the module can be used (hardcoded to only chat in one room).
 
-##Matrix basics
+## Matrix basics
 
 Here are the basics of the Matrix protocol, from the client's perspective.
 
@@ -42,6 +42,6 @@ All communication happens in _rooms_. Communication is done by sending _events_ 
 
 Everything that happens is an _event_ (various kinds exist). Events are represented as Dictionaries in this module. An event has a type, a room ID, an event ID, a sender, and some other fields. The full specification of what an event looks like can be found in the [Matrix client-server API spec](https://matrix.org/docs/spec/client_server/r0.2.0.html). The homeserver saves full history of all events that have happened.
 
-##Credit
+## Credit
 
 This module's design is heavily inspired by, and in some parts ported over from, the [Matrix Python SDK](https://github.com/matrix-org/matrix-python-sdk/). Thanks!
