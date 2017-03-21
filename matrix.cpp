@@ -282,7 +282,7 @@ void MatrixRoom::_put_event(Dictionary event) {
     events.pop_front();
   }
 
-  emit_signal("event", event);
+  emit_signal("timeline_event", event);
 }
 
 void MatrixRoom::_put_ephemeral_event(Dictionary event) {
@@ -300,14 +300,12 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
   if (event_type == "m.room.name") {
     if (((Dictionary)event["content"]).has("name")) {
       name = ((Dictionary)event["content"])["name"];
-      print_line("NEW ROOM NAME: "+get_name());
     } else {
       name = String();
     }
   } else if (event_type == "m.room.topic") {
     if (((Dictionary)event["content"]).has("topic")) {
       topic = ((Dictionary)event["content"])["topic"];
-      print_line("NEW ROOM TOPIC:"+get_topic());
     } else {
       topic = String();
     }
@@ -377,7 +375,7 @@ void MatrixRoom::_bind_methods() {
 
   ClassDB::bind_method("send_text_message", &MatrixRoom::send_text_message);
 
-  ADD_SIGNAL( MethodInfo("event") );
+  ADD_SIGNAL( MethodInfo("timeline_event") );
   ADD_SIGNAL( MethodInfo("ephemeral_event") );
   ADD_SIGNAL( MethodInfo("state_event") );
 }
