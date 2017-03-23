@@ -2,6 +2,8 @@ Import('env')
 
 sources = [
     "register_types.cpp",
+    "matrixroom.cpp",
+    "matrixuser.cpp",
     "matrix.cpp"
 ]
 

@@ -6,7 +6,11 @@
 #include "core/os/thread.h"
 #include "core/bind/core_bind.h"
 
+#include "matrixroom.h"
+#include "matrixuser.h"
+
 class MatrixRoom;
+class MatrixUser;
 
 class MatrixClient : public Node {
   friend class MatrixRoom;
@@ -54,49 +58,14 @@ public:
   Error _sync(int timeout_ms=30000);
   Error _listen_forever(Variant userdata);
 
+  Variant create_room(String alias=String(), bool is_public=false, Array invitees = Array());
+  Variant join_room(String room_id_or_alias);
+
+  //Variant upload(PoolByteArray data, String content_type); TODO: :-D
+ 
+  MatrixUser get_user(String user_id);
+
   MatrixClient();
-};
-
-class MatrixRoom : public Reference {
-  friend class MatrixClient;
-  friend class Map<String, MatrixRoom>;
-  GDCLASS(MatrixRoom,Reference);
-
-  MatrixClient *client;
-
-  String room_id;
-  String prev_batch;
-
-  Dictionary aliases; // HS name -> array of aliases
-
-  Array events;
-  int event_history_limit = 20;
-
-  void _put_event(Dictionary event);
-  void _put_ephemeral_event(Dictionary event);
-  Error _process_state_event(Dictionary event);
-
-protected:
-  static void _bind_methods();
-
-public:
-
-  String name;
-  String topic;
-
-  int get_event_history_limit();
-  void set_event_history_limit(int limit);
-
-  String get_name() const;
-  String get_topic() const;
-  Array get_events() const;
-  Dictionary get_aliases() const;
-
-  Error send_text_message(String text);
-
-  MatrixRoom();
-
-  void init(MatrixClient *client, String room_id);
 };
 
 #endif 
