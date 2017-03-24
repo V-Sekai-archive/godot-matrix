@@ -14,12 +14,14 @@ class MatrixUser;
 
 class MatrixClient : public Node {
   friend class MatrixRoom;
+  friend class MatrixUser;
   GDCLASS(MatrixClient,Node);
 
   HTTPClient sync_client;
   String hs_name;
   String auth_token;
   String sync_token;
+  String user_id;
 
   _Thread listener_thread;
 
@@ -32,6 +34,8 @@ class MatrixClient : public Node {
   HTTPClient::ResponseCode request(String endpoint, String body, HTTPClient::Method method, String &response_body);
   HTTPClient::ResponseCode request(String endpoint, String body, HTTPClient::Method method);
 
+  HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, Dictionary &response_body, bool auth=true);
+  HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth=true);
 
 protected:
   static void _bind_methods();
@@ -45,6 +49,9 @@ public:
 
   String get_sync_token() const;
   void set_sync_token(String token);
+
+  String get_user_id() const;
+  void set_user_id(String id);
 
   Dictionary get_rooms() const;
 
@@ -63,7 +70,7 @@ public:
 
   //Variant upload(PoolByteArray data, String content_type); TODO: :-D
  
-  MatrixUser get_user(String user_id);
+  Variant get_user(String user_id);
 
   MatrixClient();
 };

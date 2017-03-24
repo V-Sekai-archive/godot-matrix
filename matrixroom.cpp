@@ -19,7 +19,6 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
   if (!event.has("type")) {
     return Error::ERR_INVALID_DATA;
   }
-  print_line(JSON::print(event));
   
   String event_type = event["type"];
 
@@ -71,21 +70,42 @@ Dictionary MatrixRoom::get_aliases() const {
 }
 
 Error MatrixRoom::send_text_message(String text) {
-  //this is just to generate a unique ID for every message sent from this client
+  //this is just to generate a unique ID for every message sent from this client, not some kind of timestamp
   String txn_id = String::num_int64((OS::get_singleton()->get_unix_time()*1000)+OS::get_singleton()->get_ticks_msec());
 
   Dictionary request_body = Dictionary();
   request_body["msgtype"] = "m.text";
   request_body["body"] = text;
-  String body_json = JSON::print(request_body);
-  print_line(txn_id);
 
-  HTTPClient::ResponseCode status = client->request("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/m.room.message/"+txn_id+"?access_token="+client->get_auth_token(), body_json, HTTPClient::Method::METHOD_PUT);
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/m.room.message/"+txn_id, request_body, HTTPClient::Method::METHOD_PUT);
   
   if (status == 200) {
     return Error::OK;
   } else {
     return Error::ERR_QUERY_FAILED;
+  }
+}
+
+MatrixRoom::MatrixRoom() {
+}
+
+void MatrixRoom::init(MatrixClient *c, String id) {
+  client = c;
+  room_id = id;
+
+  //TODO: replace the following with a dedicated "sync room state" method
+  Dictionary response;
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.name", Dictionary(), HTTPClient::Method::METHOD_GET, response);
+  
+  if (status == 200) {
+    name = response["name"];
+  }
+
+  response = Dictionary();
+  status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.topic", Dictionary(), HTTPClient::Method::METHOD_GET, response);
+  
+  if (status == 200) {
+    topic = response["topic"];
   }
 }
 
@@ -104,35 +124,4 @@ void MatrixRoom::_bind_methods() {
   ADD_SIGNAL( MethodInfo("timeline_event") );
   ADD_SIGNAL( MethodInfo("ephemeral_event") );
   ADD_SIGNAL( MethodInfo("state_event") );
-}
-
-MatrixRoom::MatrixRoom() {
-}
-
-void MatrixRoom::init(MatrixClient *c, String id) {
-  client = c;
-  room_id = id;
-
-  //TODO: replace the following with a dedicated "sync room state" method
-  String response_json;
-  HTTPClient::ResponseCode status = client->request("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.name?access_token="+client->get_auth_token(), String(), HTTPClient::Method::METHOD_GET, response_json);
-  
-  if (status == 200) {
-    Variant response = Variant();
-    String r_err_str;
-    int32_t r_err_line;
-    Error parse_err = JSON::parse(response_json, response, r_err_str, r_err_line);
-    name = ((Dictionary)response)["name"];
-  }
-
-  response_json = String();
-  status = client->request("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.topic?access_token="+client->get_auth_token(), String(), HTTPClient::Method::METHOD_GET, response_json);
-  
-  if (status == 200) {
-    Variant response = Variant();
-    String r_err_str;
-    int32_t r_err_line;
-    Error parse_err = JSON::parse(response_json, response, r_err_str, r_err_line);
-    topic = ((Dictionary)response)["topic"];
-  }
 }

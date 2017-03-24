@@ -10,7 +10,6 @@ class MatrixClient;
 
 class MatrixRoom : public Reference {
   friend class MatrixClient;
-  friend class Map<String, MatrixRoom>;
   GDCLASS(MatrixRoom,Reference);
 
   MatrixClient *client;
@@ -46,7 +45,6 @@ public:
   Error send_text_message(String text);
 
   MatrixRoom();
-
   void init(MatrixClient *client, String room_id);
 };
 

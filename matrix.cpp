@@ -56,6 +56,26 @@ HTTPClient::ResponseCode MatrixClient::request(String endpoint, String body, HTT
   return request(client, endpoint, body, method, response);
 }
 
+HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, Dictionary &response_body, bool auth) {
+  String response_json;
+  HTTPClient::ResponseCode http_status = request(sync_client, endpoint+(auth?"&access_token="+auth_token:String()), JSON::print(body), HTTPClient::Method::METHOD_GET, response_json);
+
+  if (http_status == 200) {
+    Variant response_variant = Variant();
+    String r_err_str;
+    int32_t r_err_line;
+    Error parse_err = JSON::parse(response_json, response_variant, r_err_str, r_err_line);
+    if (parse_err) { WARN_PRINT("JSON parsing error! "+parse_err); }
+    response_body = (Dictionary)response_variant;
+  }
+
+  return http_status;
+}
+
+HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth) {
+  return request(sync_client, endpoint+(auth?"&access_token="+auth_token:String()), JSON::print(body), HTTPClient::Method::METHOD_GET);
+}
+
 Error MatrixClient::_sync(int timeout_ms) {
   String sync_filter = "filter=" + String("{ \"room\": { \"timeline\" : { \"limit\" : 10 } } }").http_escape();
   String since;
@@ -166,6 +186,14 @@ void MatrixClient::set_sync_token(String token) {
   sync_token = token;
 }
 
+String MatrixClient::get_user_id() const {
+  return user_id;
+}
+
+void MatrixClient::set_user_id(String id) {
+  user_id = id;
+}
+
 Dictionary MatrixClient::get_rooms() const {
   return rooms;
 }
@@ -175,20 +203,13 @@ Error MatrixClient::login(String username, String password) {
   request_body["type"] = "m.login.password";
   request_body["user"] = username;
   request_body["password"] = password;
-  String body_json = JSON::print(request_body);
 
-  String response_json;
-  HTTPClient::ResponseCode http_status = request("/_matrix/client/r0/login", body_json, HTTPClient::Method::METHOD_POST, response_json);
+  Dictionary response;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/login", request_body, HTTPClient::Method::METHOD_POST, response, false);
   
   if (http_status == 200) {
-    Variant response = Variant();
-    String r_err_str;
-    int32_t r_err_line;
-    Error parse_err = JSON::parse(response_json, response, r_err_str, r_err_line);
-    if (parse_err) { return parse_err; }
-
-    auth_token = ((Dictionary)response)["access_token"];
-
+    auth_token = response["access_token"];
+    user_id = "@"+username+":"+hs_name;
     return Error::OK;
   } else {
     return Error::ERR_QUERY_FAILED;
@@ -199,8 +220,12 @@ Error MatrixClient::logout() {
   if (auth_token.length() == 0) {
     return Error::ERR_UNCONFIGURED;
   }
-  request("/_matrix/client/r0/logout?access_token"+auth_token, String(), HTTPClient::Method::METHOD_POST);
-  return Error::OK;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/logout", Dictionary(), HTTPClient::Method::METHOD_POST);
+  if (http_status == 200) {
+    return Error::OK;
+  } else {
+    return Error::ERR_QUERY_FAILED;
+  }
 }
 
 Error MatrixClient::start_listening() {
@@ -263,21 +288,14 @@ Variant MatrixClient::create_room(String alias, bool is_public, Array invitees) 
   if (!invitees.empty()) {
     content["invitees"] = invitees;
   }
-  String body_json = JSON::print(content);
 
-  String response_json;
-  HTTPClient::ResponseCode http_status = request("/_matrix/client/r0/createRoom?access_token="+auth_token, body_json, HTTPClient::Method::METHOD_POST, response_json);
+  Dictionary response;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/createRoom", content, HTTPClient::Method::METHOD_POST, response);
   
   if (http_status == 200) {
-    Variant response = Variant();
-    String r_err_str;
-    int32_t r_err_line;
-    Error parse_err = JSON::parse(response_json, response, r_err_str, r_err_line);
-    if (parse_err) { return false; }
-
     Ref<MatrixRoom> room = memnew(MatrixRoom);
-    room->init(this, ((Dictionary)response)["room_id"]);
-    rooms[((Dictionary)response)["room_id"]] = room;
+    room->init(this, response["room_id"]);
+    rooms[response["room_id"]] = room;
     return room;
   } else {
     WARN_PRINT("Unable to create new room!");
@@ -291,19 +309,13 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
     return false;
   }
 
-  String response_json;
-  HTTPClient::ResponseCode http_status = request("/_matrix/client/r0/joinRoom/"+room_id_or_alias+"?access_token="+auth_token, String(), HTTPClient::Method::METHOD_POST, response_json);
+  Dictionary response;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/joinRoom/"+room_id_or_alias, Dictionary(), HTTPClient::Method::METHOD_POST, response);
   
   if (http_status == 200) {
-    Variant response = Variant();
-    String r_err_str;
-    int32_t r_err_line;
-    Error parse_err = JSON::parse(response_json, response, r_err_str, r_err_line);
-    if (parse_err) { return false; }
-
     Ref<MatrixRoom> room = memnew(MatrixRoom);
-    room->init(this, ((Dictionary)response)["room_id"]);
-    rooms[((Dictionary)response)["room_id"]] = room;
+    room->init(this, response["room_id"]);
+    rooms[response["room_id"]] = room;
     return room;
   } else if (http_status == 403) {
     WARN_PRINT("Not allowed to join room!");
@@ -314,6 +326,14 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
   }
 }
 
+Variant MatrixClient::get_user(String user_id) {
+  Ref<MatrixUser> user = memnew(MatrixUser);
+  user->init(this, user_id);
+
+  return user;
+}
+  
+
 void MatrixClient::_bind_methods() {
   ClassDB::bind_method("set_hs_name", &MatrixClient::set_hs_name);
   ClassDB::bind_method("get_hs_name", &MatrixClient::get_hs_name);
@@ -321,9 +341,12 @@ void MatrixClient::_bind_methods() {
   ClassDB::bind_method("get_auth_token", &MatrixClient::get_auth_token);
   ClassDB::bind_method("set_sync_token", &MatrixClient::set_sync_token);
   ClassDB::bind_method("get_sync_token", &MatrixClient::get_sync_token);
+  ClassDB::bind_method("set_user_id", &MatrixClient::set_user_id);
+  ClassDB::bind_method("get_user_id", &MatrixClient::get_user_id);
   ADD_PROPERTY( PropertyInfo(Variant::STRING,"hs_name"), "set_hs_name", "get_hs_name" );
   ADD_PROPERTY( PropertyInfo(Variant::STRING,"auth_token"), "set_auth_token", "get_auth_token" );
   ADD_PROPERTY( PropertyInfo(Variant::STRING,"sync_token"), "set_sync_token", "get_sync_token" );
+  ADD_PROPERTY( PropertyInfo(Variant::STRING,"user_id"), "set_user_id", "get_user_id" );
 
   ClassDB::bind_method("login", &MatrixClient::login);
   ClassDB::bind_method("logout", &MatrixClient::logout);
@@ -336,6 +359,8 @@ void MatrixClient::_bind_methods() {
 
   ClassDB::bind_method("create_room", &MatrixClient::create_room);
   ClassDB::bind_method("join_room", &MatrixClient::join_room);
+
+  ClassDB::bind_method("get_user", &MatrixClient::get_user);
 
   ADD_SIGNAL( MethodInfo("timeline_event") );
   ADD_SIGNAL( MethodInfo("ephemeral_event") );
