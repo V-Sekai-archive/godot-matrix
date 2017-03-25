@@ -71,6 +71,7 @@ public:
   //Variant upload(PoolByteArray data, String content_type); TODO: :-D
  
   Variant get_user(String user_id);
+  Variant get_me();
 
   MatrixClient();
 };

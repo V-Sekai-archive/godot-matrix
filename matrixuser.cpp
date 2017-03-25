@@ -1,4 +1,5 @@
 #include "matrixuser.h"
+#include "io/json.h"
 
 String MatrixUser::get_display_name(bool sync) {
   if (sync) {
@@ -31,7 +32,6 @@ Error MatrixUser::set_display_name(String name) {
     display_name = name;
     return Error::OK;
   } else {
-    WARN_PRINT(((String)response["error"]).utf8().get_data());
     return Error::ERR_QUERY_FAILED;
   }
 }
@@ -51,6 +51,11 @@ String MatrixUser::get_avatar_url(bool sync) {
 }
 
 Error MatrixUser::set_avatar_url(String mxcurl) {
+  if (!mxcurl.begins_with("mxc://")) {
+    WARN_PRINT("Avatar URL must begin with \"mxc://\"!");
+    return Error::ERR_INVALID_PARAMETER;
+  }
+
   Dictionary request_body;
   request_body["avatar_url"] = mxcurl;
 
@@ -75,4 +80,9 @@ void MatrixUser::init(MatrixClient *c, String id) {
 
 }
 void MatrixUser::_bind_methods() {
+  ClassDB::bind_method("get_display_name", &MatrixUser::get_display_name);
+  ClassDB::bind_method("get_friendly_name", &MatrixUser::get_friendly_name);
+  ClassDB::bind_method("set_display_name", &MatrixUser::set_display_name);
+  ClassDB::bind_method("get_avatar_url", &MatrixUser::get_avatar_url);
+  ClassDB::bind_method("set_avatar_url", &MatrixUser::set_avatar_url);
 }

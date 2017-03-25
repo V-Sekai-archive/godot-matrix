@@ -77,6 +77,7 @@ Error MatrixRoom::send_text_message(String text) {
   request_body["msgtype"] = "m.text";
   request_body["body"] = text;
 
+  print_line(JSON::print(request_body));
   HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/m.room.message/"+txn_id, request_body, HTTPClient::Method::METHOD_PUT);
   
   if (status == 200) {

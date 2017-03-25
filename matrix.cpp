@@ -57,8 +57,13 @@ HTTPClient::ResponseCode MatrixClient::request(String endpoint, String body, HTT
 }
 
 HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, Dictionary &response_body, bool auth) {
+  String body_json;
+  if (!body.empty()) {
+    body_json = JSON::print(body);
+  }
   String response_json;
-  HTTPClient::ResponseCode http_status = request(sync_client, endpoint+(auth?"&access_token="+auth_token:String()), JSON::print(body), HTTPClient::Method::METHOD_GET, response_json);
+  String e =  endpoint+(endpoint.find("?")==-1?"?":"&")+(auth?"access_token="+auth_token:String());
+  HTTPClient::ResponseCode http_status = request(e, body_json, method, response_json);
 
   if (http_status == 200) {
     Variant response_variant = Variant();
@@ -73,7 +78,8 @@ HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary 
 }
 
 HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth) {
-  return request(sync_client, endpoint+(auth?"&access_token="+auth_token:String()), JSON::print(body), HTTPClient::Method::METHOD_GET);
+  Dictionary response;
+  return request_json(endpoint, body, method, response, auth);
 }
 
 Error MatrixClient::_sync(int timeout_ms) {
@@ -326,11 +332,15 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
   }
 }
 
-Variant MatrixClient::get_user(String user_id) {
+Variant MatrixClient::get_user(String id) {
   Ref<MatrixUser> user = memnew(MatrixUser);
-  user->init(this, user_id);
+  user->init(this, id);
 
   return user;
+}
+
+Variant MatrixClient::get_me() {
+  return get_user(user_id);
 }
   
 
@@ -361,6 +371,7 @@ void MatrixClient::_bind_methods() {
   ClassDB::bind_method("join_room", &MatrixClient::join_room);
 
   ClassDB::bind_method("get_user", &MatrixClient::get_user);
+  ClassDB::bind_method("get_me", &MatrixClient::get_me);
 
   ADD_SIGNAL( MethodInfo("timeline_event") );
   ADD_SIGNAL( MethodInfo("ephemeral_event") );
