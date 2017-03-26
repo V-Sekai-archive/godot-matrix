@@ -19,7 +19,7 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
   if (!event.has("type")) {
     return Error::ERR_INVALID_DATA;
   }
-  
+
   String event_type = event["type"];
 
   if (event_type == "m.room.name") {
@@ -53,11 +53,33 @@ void MatrixRoom::set_event_history_limit(int limit) {
   event_history_limit = limit;
 }
 
-String MatrixRoom::get_name() const {
+String MatrixRoom::get_name(bool sync) {
+  if (sync) {
+    Variant response_v;
+    HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.name", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    if (status == 200) {
+      Dictionary response = response_v;
+      name = response["name"];
+    } else {
+      WARN_PRINT("Unable to get room name!");
+    }
+  }
+
   return name;
 }
 
-String MatrixRoom::get_topic() const {
+String MatrixRoom::get_topic(bool sync) {
+  if (sync) {
+    Variant response_v;
+    HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.topic", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    if (status == 200) {
+      Dictionary response = response_v;
+      topic = response["topic"];
+    } else {
+      WARN_PRINT("Unable to get room topic!");
+    }
+  }
+  
   return topic;
 }
 
@@ -87,27 +109,30 @@ Error MatrixRoom::send_text_message(String text) {
   }
 }
 
+void MatrixRoom::_state_sync(Variant userdata) {
+  Variant response_v;
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+
+  if (status == 200) {
+    Array response = response_v;
+    for (int i=0; i<response.size(); i++) {
+      _process_state_event(response[i]);
+    }
+  }
+}
+
+Variant MatrixRoom::state_sync() {
+  Ref<_Thread> state_thread = memnew(_Thread);
+  state_thread->start(this, "_state_sync");
+  return state_thread;
+}
+
 MatrixRoom::MatrixRoom() {
 }
 
 void MatrixRoom::init(MatrixClient *c, String id) {
   client = c;
   room_id = id;
-
-  //TODO: replace the following with a dedicated "sync room state" method
-  Dictionary response;
-  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.name", Dictionary(), HTTPClient::Method::METHOD_GET, response);
-  
-  if (status == 200) {
-    name = response["name"];
-  }
-
-  response = Dictionary();
-  status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.topic", Dictionary(), HTTPClient::Method::METHOD_GET, response);
-  
-  if (status == 200) {
-    topic = response["topic"];
-  }
 }
 
 void MatrixRoom::_bind_methods() {
@@ -121,6 +146,9 @@ void MatrixRoom::_bind_methods() {
   ClassDB::bind_method("get_aliases", &MatrixRoom::get_aliases);
 
   ClassDB::bind_method("send_text_message", &MatrixRoom::send_text_message);
+
+  ClassDB::bind_method("_state_sync", &MatrixRoom::_state_sync);
+  ClassDB::bind_method("state_sync", &MatrixRoom::state_sync);
 
   ADD_SIGNAL( MethodInfo("timeline_event") );
   ADD_SIGNAL( MethodInfo("ephemeral_event") );

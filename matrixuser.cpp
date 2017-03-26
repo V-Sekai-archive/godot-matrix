@@ -3,8 +3,9 @@
 
 String MatrixUser::get_display_name(bool sync) {
   if (sync) {
-    Dictionary response;
-    client->request_json("/_matrix/client/r0/profile/"+user_id+"/displayname", Dictionary(), HTTPClient::Method::METHOD_GET, response);
+    Variant response_v;
+    client->request_json("/_matrix/client/r0/profile/"+user_id+"/displayname", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    Dictionary response = response_v;
     display_name = response["displayname"];
   }
 
@@ -25,10 +26,11 @@ Error MatrixUser::set_display_name(String name) {
   Dictionary request_body;
   request_body["displayname"] = name;
 
-  Dictionary response;
-  HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id+"/displayname", request_body, HTTPClient::Method::METHOD_PUT, response);
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id.http_escape()+"/displayname", request_body, HTTPClient::Method::METHOD_PUT, response_v);
 
   if (http_status == 200) {
+    Dictionary response = response_v;
     display_name = name;
     return Error::OK;
   } else {
@@ -38,8 +40,9 @@ Error MatrixUser::set_display_name(String name) {
 
 String MatrixUser::get_avatar_url(bool sync) {
   if (sync) {
-    Dictionary response;
-    HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id+"/displayname", Dictionary(), HTTPClient::Method::METHOD_GET, response);
+    Variant response_v;
+    HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id.http_escape()+"/displayname", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    Dictionary response = response_v;
     if (response.has("avatar_url")) {
       avatar_url = response["avatar_url"];
     } else {
@@ -59,8 +62,9 @@ Error MatrixUser::set_avatar_url(String mxcurl) {
   Dictionary request_body;
   request_body["avatar_url"] = mxcurl;
 
-  Dictionary response;
-  HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id+"/avatar_url", request_body, HTTPClient::Method::METHOD_PUT, response);
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = client->request_json("/_matrix/client/r0/profile/"+user_id+"/avatar_url", request_body, HTTPClient::Method::METHOD_PUT, response_v);
+  Dictionary response = response_v;
 
   if (http_status == 200) {
     avatar_url = mxcurl;

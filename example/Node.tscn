@@ -6,12 +6,35 @@
 
 script/source = "extends Node
 
-# class member variables go here, for example:
-# var a = 2
-# var b = \"textvar\"
+#var room_view = preload(\"res://roomview.tscn\")
+#var room_views = {}
 
 func _ready():
-	get_node(\"MatrixClient\").start_listening()"
+	get_node(\"MatrixClient\").start_listening()
+	#get_node(\"client view/room view\").set_room(get_node(\"MatrixClient\").get_rooms()[\"!RtOeFVSpNUJHGLYYTh:vurpo.fi\"])
+	
+	var tree = get_node(\"client view/room list/Tree\")
+	tree.set_select_mode(Tree.SELECT_SINGLE)
+	var root = tree.create_item()
+	tree.set_hide_root(true)
+	var rooms = tree.create_item(root)
+	rooms.set_text(0, \"Rooms\")
+	
+	for room_id in get_node(\"MatrixClient\").get_rooms():
+		var room_ = tree.create_item(rooms)
+		room_.set_text(0, get_node(\"MatrixClient\").get_rooms()[room_id].get_name(true))
+		room_.set_metadata(0, room_id)
+	
+	tree.connect(\"cell_selected\", self, \"cell_selected\")
+
+func cell_selected():
+	var tree = get_node(\"client view/room list/Tree\")
+	if (tree.get_selected().get_parent().get_text(0) == \"Rooms\"):
+		#var room = room_view.instance(true)
+		#get_node(\"client view\").get_children()[1].replace_by(room)#_views[tree.get_selected().get_metadata(0)])
+		var room = get_node(\"client view/Room view\")
+		room.set_room(get_node(\"MatrixClient\").get_rooms()[tree.get_selected().get_metadata(0)])
+		room.room.state_sync()"
 
 [node name="Node" type="Node"]
 
@@ -24,9 +47,35 @@ auth_token = "MDAxNmxvY2F0aW9uIHZ1cnBvLmZpCjAwMTNpZGVudGlmaWVyIGtleQowMDEwY2lkIG
 sync_token = ""
 user_id = "@godot_test:vurpo.fi"
 
-[node name="room view" parent="." instance=ExtResource( 1 )]
+[node name="client view" type="HSplitContainer" parent="."]
 
-client_path = NodePath("../MatrixClient")
-room_id = "!RtOeFVSpNUJHGLYYTh:vurpo.fi"
+anchor_right = 1
+anchor_bottom = 1
+rect_clip_content = false
+mouse_filter = 0
+split_offset = 250
+collapsed = false
+dragger_visibility = 0
+
+[node name="room list" type="Panel" parent="client view"]
+
+margin_right = 250.0
+margin_bottom = 761.0
+rect_clip_content = false
+mouse_filter = 0
+
+[node name="Tree" type="Tree" parent="client view/room list"]
+
+anchor_right = 1
+anchor_bottom = 1
+mouse_filter = 0
+
+[node name="Room view" parent="client view" instance=ExtResource( 1 )]
+
+anchor_right = 0
+anchor_bottom = 0
+margin_left = 262.0
+margin_right = 1406.0
+margin_bottom = 761.0
 
 

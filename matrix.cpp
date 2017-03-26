@@ -56,7 +56,7 @@ HTTPClient::ResponseCode MatrixClient::request(String endpoint, String body, HTT
   return request(client, endpoint, body, method, response);
 }
 
-HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, Dictionary &response_body, bool auth) {
+HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, Variant &response_body, bool auth) {
   String body_json;
   if (!body.empty()) {
     body_json = JSON::print(body);
@@ -71,14 +71,14 @@ HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary 
     int32_t r_err_line;
     Error parse_err = JSON::parse(response_json, response_variant, r_err_str, r_err_line);
     if (parse_err) { WARN_PRINT("JSON parsing error! "+parse_err); }
-    response_body = (Dictionary)response_variant;
+    response_body = response_variant;
   }
 
   return http_status;
 }
 
 HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth) {
-  Dictionary response;
+  Variant response;
   return request_json(endpoint, body, method, response, auth);
 }
 
@@ -210,10 +210,11 @@ Error MatrixClient::login(String username, String password) {
   request_body["user"] = username;
   request_body["password"] = password;
 
-  Dictionary response;
-  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/login", request_body, HTTPClient::Method::METHOD_POST, response, false);
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/login", request_body, HTTPClient::Method::METHOD_POST, response_v, false);
   
   if (http_status == 200) {
+    Dictionary response = response_v;
     auth_token = response["access_token"];
     user_id = "@"+username+":"+hs_name;
     return Error::OK;
@@ -236,6 +237,7 @@ Error MatrixClient::logout() {
 
 Error MatrixClient::start_listening() {
   if (!listener_thread.is_active()) {
+    _sync();
     listener_thread.start(this, "_listen_forever");
     return Error::OK;
   } else {
@@ -295,10 +297,11 @@ Variant MatrixClient::create_room(String alias, bool is_public, Array invitees) 
     content["invitees"] = invitees;
   }
 
-  Dictionary response;
-  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/createRoom", content, HTTPClient::Method::METHOD_POST, response);
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/createRoom", content, HTTPClient::Method::METHOD_POST, response_v);
   
   if (http_status == 200) {
+    Dictionary response = response_v;
     Ref<MatrixRoom> room = memnew(MatrixRoom);
     room->init(this, response["room_id"]);
     rooms[response["room_id"]] = room;
@@ -315,8 +318,9 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
     return false;
   }
 
-  Dictionary response;
-  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/joinRoom/"+room_id_or_alias, Dictionary(), HTTPClient::Method::METHOD_POST, response);
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/join/"+room_id_or_alias, Dictionary(), HTTPClient::Method::METHOD_POST, response_v);
+  Dictionary response = response_v;
   
   if (http_status == 200) {
     Ref<MatrixRoom> room = memnew(MatrixRoom);
@@ -328,6 +332,7 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
     return false;
   } else {
     WARN_PRINT("Unable to join room!");
+    print_line(String::num_int64(http_status));
     return false;
   }
 }

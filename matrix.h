@@ -34,7 +34,7 @@ class MatrixClient : public Node {
   HTTPClient::ResponseCode request(String endpoint, String body, HTTPClient::Method method, String &response_body);
   HTTPClient::ResponseCode request(String endpoint, String body, HTTPClient::Method method);
 
-  HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, Dictionary &response_body, bool auth=true);
+  HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, Variant &response_body, bool auth=true);
   HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth=true);
 
 protected:

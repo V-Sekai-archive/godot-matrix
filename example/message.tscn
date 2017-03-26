@@ -1,0 +1,103 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://icon.png" type="Texture" id=1]
+
+[sub_resource type="GDScript" id=3]
+
+script/source = "extends Panel
+
+export(String) var sender_name = \"\" setget set_sender_name
+export(String) var message_text = \"\" setget set_message_text
+
+func set_sender_name(name):
+	if (has_node(\"sender\")):
+		get_node(\"sender\").set_text(name)
+
+func set_message_text(text):
+	if (has_node(\"message\")):
+		get_node(\"message\").set_text(text)
+
+func _ready():
+	set_sender_name(sender_name)
+	set_message_text(message_text)
+	
+	get_node(\"message\").connect(\"minimum_size_changed\", self, \"resized\")
+
+func resized():
+	set_custom_minimum_size(Vector2(0, 50+get_node(\"message\").get_custom_minimum_size().y-get_node(\"message\").get_line_height()))"
+
+[sub_resource type="GDScript" id=2]
+
+script/source = "extends Label
+
+# class member variables go here, for example:
+# var a = 2
+# var b = \"textvar\"
+
+func _ready():
+	# Called every time the node is added to the scene.
+	# Initialization here    
+	connect(\"item_rect_changed\", self, \"on_item_rect_changed\")
+	on_item_rect_changed()
+
+func on_item_rect_changed():
+	set_custom_minimum_size(Vector2(0, (get_line_height()+get_constant(\"line_spacing\")) * get_line_count()))"
+
+[node name="message" type="Panel"]
+
+anchor_right = 1
+margin_bottom = 50.0
+rect_min_size = Vector2( 0, 50 )
+rect_clip_content = false
+mouse_filter = 0
+size_flags_horizontal = 3
+script = SubResource( 3 )
+sender_name = ""
+message_text = ""
+
+[node name="sender" type="Label" parent="."]
+
+anchor_right = 1
+margin_left = 50.0
+margin_top = 10.0
+margin_right = 20.0
+margin_bottom = 24.0
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 0
+custom_colors/font_color = Color( 0.425781, 0.425781, 0.425781, 1 )
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+
+[node name="message" type="Label" parent="."]
+
+anchor_right = 1
+margin_left = 50.0
+margin_top = 30.0
+margin_right = 20.0
+margin_bottom = 44.0
+rect_min_size = Vector2( 0, 20 )
+rect_clip_content = false
+mouse_filter = 2
+size_flags_vertical = 3
+autowrap = true
+clip_text = true
+percent_visible = 1.0
+lines_skipped = 0
+max_lines_visible = -1
+script = SubResource( 2 )
+
+[node name="TextureRect" type="TextureRect" parent="."]
+
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 40.0
+margin_bottom = 40.0
+rect_clip_content = false
+mouse_filter = 1
+texture = ExtResource( 1 )
+expand = true
+stretch_mode = 0
+
+
