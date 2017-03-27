@@ -85,7 +85,7 @@ func add_event(event):
 		scroll_to_bottom = true
 
 func get_name(user_id):
-	return \"test\"#TODO: implement in module
+	return room.get_member_display_name(user_id, true)
 
 func timeline_event(event):
 	process_timeline_event(event)
@@ -108,8 +108,8 @@ func ephemeral_event(event):
 			get_node(\"typing\").text = typing_text + \" are typing\"
 
 func state_event(event):
-	get_node(\"room_name\").set_text(\"Room name: \"+room.get_name(false))
-	get_node(\"room_topic\").set_text(\"Topic: \"+room.get_topic(false))"
+	get_node(\"room_name\").set_text(room.get_name(false))
+	get_node(\"room_topic\").set_text(room.get_topic(false))"
 
 [node name="Room view" type="Panel"]
 
@@ -144,6 +144,7 @@ margin_bottom = 60.0
 rect_clip_content = false
 mouse_filter = 2
 size_flags_vertical = 0
+custom_colors/font_color = Color( 0.617188, 0.617188, 0.617188, 1 )
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1

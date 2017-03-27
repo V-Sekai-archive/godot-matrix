@@ -22,7 +22,15 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
 
   String event_type = event["type"];
 
-  if (event_type == "m.room.name") {
+  if (event_type == "m.room.member") {
+    String member = event["state_key"];
+
+    if (((Dictionary)event["content"])["membership"] == "join") {
+      members[member] = (Dictionary)event["content"];
+    } else if (members.has(member)) {
+      members.erase(member);
+    }
+  } else if (event_type == "m.room.name") {
     if (((Dictionary)event["content"]).has("name")) {
       name = ((Dictionary)event["content"])["name"];
     } else {
@@ -68,6 +76,16 @@ String MatrixRoom::get_name(bool sync) {
   return name;
 }
 
+String MatrixRoom::get_friendly_name(bool sync) {
+  get_name(sync);
+
+  if (name.length() != 0) {
+    return name;
+  } else {
+    return room_id;
+  }
+}
+
 String MatrixRoom::get_topic(bool sync) {
   if (sync) {
     Variant response_v;
@@ -109,6 +127,46 @@ Error MatrixRoom::send_text_message(String text) {
   }
 }
 
+Dictionary MatrixRoom::get_members(bool sync) {
+  if (sync) {
+    Variant response_v;
+    HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/members", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    if (status == 200) {
+      Dictionary response = response_v;
+      if (response.has("chunk")) {
+        Array chunk = response["chunk"];
+        for (int i=0; i<chunk.size(); i++) {
+          Dictionary event = chunk[i];
+          if (((Dictionary)event["content"])["membership"] == "join") {
+            members[event["state_key"]] = (Dictionary)event["content"];
+          }
+        }
+      }
+    }
+  }
+
+  return members;
+}
+
+String MatrixRoom::get_member_display_name(String id, bool sync) {
+  if (sync) {
+    Variant response_v;
+    HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.member/"+id.http_escape(), Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+    if (status == 200) {
+      Dictionary response = response_v;
+      print_line(JSON::print(response));
+      members[id] = response;
+    } else if (status == 404) {
+      WARN_PRINT("Tried to look up non-existent room member!");
+    }
+  }
+  if (members.has(id) && ((Dictionary)members[id]).has("displayname")) {
+    return ((Dictionary)members[id])["displayname"]; //TODO: disambiguate display names
+  } else {
+    return id;
+  }
+}
+
 void MatrixRoom::_state_sync(Variant userdata) {
   Variant response_v;
   HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state", Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
@@ -141,9 +199,13 @@ void MatrixRoom::_bind_methods() {
   ADD_PROPERTY( PropertyInfo(Variant::INT,"event_history_limit"), "set_event_history_limit", "get_event_history_limit");
 
   ClassDB::bind_method("get_name", &MatrixRoom::get_name);
+  ClassDB::bind_method("get_friendly_name", &MatrixRoom::get_friendly_name);
   ClassDB::bind_method("get_topic", &MatrixRoom::get_topic);
   ClassDB::bind_method("get_events", &MatrixRoom::get_events);
   ClassDB::bind_method("get_aliases", &MatrixRoom::get_aliases);
+
+  ClassDB::bind_method("get_members", &MatrixRoom::get_members);
+  ClassDB::bind_method("get_member_display_name", &MatrixRoom::get_member_display_name);
 
   ClassDB::bind_method("send_text_message", &MatrixRoom::send_text_message);
 

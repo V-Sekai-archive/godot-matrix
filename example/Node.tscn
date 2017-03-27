@@ -22,7 +22,7 @@ func _ready():
 	
 	for room_id in get_node(\"MatrixClient\").get_rooms():
 		var room_ = tree.create_item(rooms)
-		room_.set_text(0, get_node(\"MatrixClient\").get_rooms()[room_id].get_name(true))
+		room_.set_text(0, get_node(\"MatrixClient\").get_rooms()[room_id].get_friendly_name(true))
 		room_.set_metadata(0, room_id)
 	
 	tree.connect(\"cell_selected\", self, \"cell_selected\")

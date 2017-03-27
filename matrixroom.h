@@ -19,6 +19,8 @@ class MatrixRoom : public Reference {
 
   Dictionary aliases; // HS name -> array of aliases
 
+  Dictionary members;
+
   Array events;
   int event_history_limit = 20;
 
@@ -40,9 +42,13 @@ public:
   void set_event_history_limit(int limit);
 
   String get_name(bool sync=false);
+  String get_friendly_name(bool sync=false);
   String get_topic(bool sync=false);
   Array get_events() const;
   Dictionary get_aliases() const;
+  Dictionary get_members(bool sync=false);
+
+  String get_member_display_name(String id, bool sync=false);
 
   Variant state_sync();
 
