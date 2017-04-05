@@ -121,6 +121,7 @@ Error MatrixClient::_sync(int timeout_ms) {
 
       Ref<MatrixRoom> room = rooms[join_rooms_keys[i]];
       Dictionary sync_room = (Dictionary)join_rooms[join_rooms_keys[i]];
+      room->prev_batch = sync_token;
 
       Array state_events = ((Dictionary)sync_room["state"])["events"];
       for (int j=0; j<state_events.size(); j++) {
@@ -203,6 +204,30 @@ void MatrixClient::set_user_id(String id) {
 Dictionary MatrixClient::get_rooms() const {
   return rooms;
 }
+
+Error MatrixClient::register_account(Variant username, String password, bool guest) {
+  Dictionary request_body = Dictionary();
+  if (username.get_type() == Variant::Type::STRING) {
+    request_body["username"] = username;
+  }
+  request_body["password"] = password;
+
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/register?kind="+String(guest?"guest":"user"), request_body, HTTPClient::Method::METHOD_POST, response_v, false);
+  
+  if (http_status == 200) {
+    Dictionary response = response_v;
+    auth_token = response["access_token"];
+    user_id = response["user_id"];
+    return Error::OK;
+  } else if (http_status == 401) {
+    ERR_PRINT("Homeserver requires additional authentication information, not implemented yet");
+    return Error::ERR_UNAVAILABLE;
+  } else {
+    ERR_PRINT(JSON::print(response_v).utf8().get_data());
+    return Error::ERR_QUERY_FAILED;
+  }
+}  
 
 Error MatrixClient::login(String username, String password) {
   Dictionary request_body = Dictionary();
@@ -363,6 +388,7 @@ void MatrixClient::_bind_methods() {
   ADD_PROPERTY( PropertyInfo(Variant::STRING,"sync_token"), "set_sync_token", "get_sync_token" );
   ADD_PROPERTY( PropertyInfo(Variant::STRING,"user_id"), "set_user_id", "get_user_id" );
 
+  ClassDB::bind_method("register_account", &MatrixClient::register_account);
   ClassDB::bind_method("login", &MatrixClient::login);
   ClassDB::bind_method("logout", &MatrixClient::logout);
   ClassDB::bind_method("_sync", &MatrixClient::_sync);

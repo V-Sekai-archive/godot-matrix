@@ -21,10 +21,15 @@ class MatrixRoom : public Reference {
 
   Dictionary members;
 
-  Array events;
-  int event_history_limit = 20;
+  Dictionary tags;
 
-  void _put_event(Dictionary event);
+  Set<String> event_ids; //all the events that have been received
+  Array events;
+  String backfill_prev_batch;
+
+  void _put_event(Dictionary event); //insert new event
+  void _put_old_event(Dictionary event); //insert old event (backwards in time)
+
   void _put_ephemeral_event(Dictionary event);
   Error _process_state_event(Dictionary event);
 
@@ -38,8 +43,7 @@ public:
   String name;
   String topic;
 
-  int get_event_history_limit();
-  void set_event_history_limit(int limit);
+  Error get_old_events(int amount);
 
   String get_name(bool sync=false);
   String get_friendly_name(bool sync=false);

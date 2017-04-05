@@ -3,12 +3,21 @@
 #include "io/json.h"
 
 void MatrixRoom::_put_event(Dictionary event) {
-  events.append(event);
-  if (events.size() > event_history_limit) {
-    events.pop_front();
-  }
+  if (!event_ids.has(event["event_id"])) {
+    event_ids.insert(event["event_id"]);
+    events.push_back(event);
 
-  emit_signal("timeline_event", event);
+    emit_signal("timeline_event", event);
+  }
+}
+
+void MatrixRoom::_put_old_event(Dictionary event) {
+  if (!event_ids.has(event["event_id"])) {
+    event_ids.insert(event["event_id"]);
+    events.push_front(event);
+
+    emit_signal("old_timeline_event", event);
+  }
 }
 
 void MatrixRoom::_put_ephemeral_event(Dictionary event) {
@@ -53,14 +62,6 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
   return Error::OK;
 }
 
-int MatrixRoom::get_event_history_limit() {
-  return event_history_limit;
-}
-
-void MatrixRoom::set_event_history_limit(int limit) {
-  event_history_limit = limit;
-}
-
 String MatrixRoom::get_name(bool sync) {
   if (sync) {
     Variant response_v;
@@ -103,6 +104,29 @@ String MatrixRoom::get_topic(bool sync) {
 
 Array MatrixRoom::get_events() const {
   return events;
+}
+
+Error MatrixRoom::get_old_events(int num_events) {
+  String from;
+  if (backfill_prev_batch.length() != 0) {
+    from = backfill_prev_batch;
+  } else {
+    from = prev_batch;
+  }
+  Variant response_v;
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/messages?from="+from.http_escape()+"&dir=b&limit="+String::num_int64(num_events), Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
+  if (status == 200) {
+    Dictionary response = response_v;
+    backfill_prev_batch = response["end"]; //TODO: check if this is correct or if it should be "start" instead
+    Array events = response["chunk"];
+    for (int i=0; i<events.size(); i++) {
+      _put_old_event(events[i]);
+    }
+    return Error::OK;
+  } else {
+    WARN_PRINT("Unable to get old events!");
+    return Error::ERR_QUERY_FAILED;
+  }
 }
 
 Dictionary MatrixRoom::get_aliases() const {
@@ -194,15 +218,13 @@ void MatrixRoom::init(MatrixClient *c, String id) {
 }
 
 void MatrixRoom::_bind_methods() {
-  ClassDB::bind_method("get_event_history_limit", &MatrixRoom::get_event_history_limit);
-  ClassDB::bind_method("set_event_history_limit", &MatrixRoom::set_event_history_limit);
-  ADD_PROPERTY( PropertyInfo(Variant::INT,"event_history_limit"), "set_event_history_limit", "get_event_history_limit");
-
   ClassDB::bind_method("get_name", &MatrixRoom::get_name);
   ClassDB::bind_method("get_friendly_name", &MatrixRoom::get_friendly_name);
   ClassDB::bind_method("get_topic", &MatrixRoom::get_topic);
   ClassDB::bind_method("get_events", &MatrixRoom::get_events);
   ClassDB::bind_method("get_aliases", &MatrixRoom::get_aliases);
+
+  ClassDB::bind_method("get_old_events", &MatrixRoom::get_old_events);
 
   ClassDB::bind_method("get_members", &MatrixRoom::get_members);
   ClassDB::bind_method("get_member_display_name", &MatrixRoom::get_member_display_name);
@@ -212,7 +234,8 @@ void MatrixRoom::_bind_methods() {
   ClassDB::bind_method("_state_sync", &MatrixRoom::_state_sync);
   ClassDB::bind_method("state_sync", &MatrixRoom::state_sync);
 
-  ADD_SIGNAL( MethodInfo("timeline_event") );
+  ADD_SIGNAL( MethodInfo("timeline_event") );     //new event inserted at most recent point in timeline
+  ADD_SIGNAL( MethodInfo("old_timeline_event") ); //old event inserted at beginning of timeline
   ADD_SIGNAL( MethodInfo("ephemeral_event") );
   ADD_SIGNAL( MethodInfo("state_event") );
 }

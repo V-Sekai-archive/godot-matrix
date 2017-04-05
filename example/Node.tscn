@@ -10,6 +10,7 @@ script/source = "extends Node
 #var room_views = {}
 
 func _ready():
+	get_node(\"MatrixClient\").register_account(null, \"secret_password\", true)
 	get_node(\"MatrixClient\").start_listening()
 	#get_node(\"client view/room view\").set_room(get_node(\"MatrixClient\").get_rooms()[\"!RtOeFVSpNUJHGLYYTh:vurpo.fi\"])
 	
@@ -43,9 +44,9 @@ script = SubResource( 1 )
 [node name="MatrixClient" type="MatrixClient" parent="."]
 
 hs_name = "https://vurpo.fi"
-auth_token = "MDAxNmxvY2F0aW9uIHZ1cnBvLmZpCjAwMTNpZGVudGlmaWVyIGtleQowMDEwY2lkIGdlbiA9IDEKMDAyN2NpZCB1c2VyX2lkID0gQGdvZG90X3Rlc3Q6dnVycG8uZmkKMDAxNmNpZCB0eXBlID0gYWNjZXNzCjAwMjFjaWQgbm9uY2UgPSBra2FWTl8sZm1Xd1YmWW4qCjAwMmZzaWduYXR1cmUgMdnRwn8uCWb_E-lIzGvGaGdJ7YAta_g3W6Y-7Ip88X0K"
+auth_token = ""
 sync_token = ""
-user_id = "@godot_test:vurpo.fi"
+user_id = ""
 
 [node name="client view" type="HSplitContainer" parent="."]
 
@@ -60,7 +61,7 @@ dragger_visibility = 0
 [node name="room list" type="Panel" parent="client view"]
 
 margin_right = 250.0
-margin_bottom = 761.0
+margin_bottom = 539.0
 rect_clip_content = false
 mouse_filter = 0
 
@@ -75,7 +76,7 @@ mouse_filter = 0
 anchor_right = 0
 anchor_bottom = 0
 margin_left = 262.0
-margin_right = 1406.0
-margin_bottom = 761.0
+margin_right = 852.0
+margin_bottom = 539.0
 
 

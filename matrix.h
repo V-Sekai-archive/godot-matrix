@@ -55,6 +55,7 @@ public:
 
   Dictionary get_rooms() const;
 
+  Error register_account(Variant username, String password, bool guest=false);
   Error login(String username, String password);
   Error logout();
 
