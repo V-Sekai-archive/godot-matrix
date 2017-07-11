@@ -57,7 +57,12 @@ public:
   Variant state_sync();
 
   Error send_text_message(String text);
+  Error send_event(String msgtype, Dictionary event);
 
+  Error set_typing(bool typing, int timeout_ms);
+
+  Variant leave_room();
+  
   MatrixRoom();
   void init(MatrixClient *client, String room_id);
 };

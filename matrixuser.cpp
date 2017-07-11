@@ -32,9 +32,9 @@ Error MatrixUser::set_display_name(String name) {
   if (http_status == 200) {
     Dictionary response = response_v;
     display_name = name;
-    return Error::OK;
+    return MATRIX_OK;
   } else {
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }
 
@@ -56,7 +56,7 @@ String MatrixUser::get_avatar_url(bool sync) {
 Error MatrixUser::set_avatar_url(String mxcurl) {
   if (!mxcurl.begins_with("mxc://")) {
     WARN_PRINT("Avatar URL must begin with \"mxc://\"!");
-    return Error::ERR_INVALID_PARAMETER;
+    return MATRIX_INVALID_REQUEST;
   }
 
   Dictionary request_body;
@@ -68,10 +68,10 @@ Error MatrixUser::set_avatar_url(String mxcurl) {
 
   if (http_status == 200) {
     avatar_url = mxcurl;
-    return Error::OK;
+    return MATRIX_OK;
   } else {
     WARN_PRINT(((String)response["error"]).utf8().get_data());
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }
 

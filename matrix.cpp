@@ -83,6 +83,11 @@ HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary 
 }
 
 Error MatrixClient::_sync(int timeout_ms) {
+  if (auth_token.length() == 0) {
+    ERR_PRINT("Not logged into Matrix server!");
+    return MATRIX_UNAUTHENTICATED;
+  }
+
   String sync_filter = "filter=" + String("{ \"room\": { \"timeline\" : { \"limit\" : 10 } } }").http_escape();
   String since;
   if (sync_token.length() > 0) {
@@ -97,7 +102,10 @@ Error MatrixClient::_sync(int timeout_ms) {
     String r_err_str;
     int32_t r_err_line;
     Error parse_err = JSON::parse(response_json, response_variant, r_err_str, r_err_line);
-    if (parse_err) { return parse_err; }
+    if (parse_err) {
+      ERR_PRINT("Invalid JSON response received from Matrix server!");
+      return MATRIX_INVALID_RESPONSE;
+    }
     Dictionary response = (Dictionary)response_variant;
 
     sync_token = response["next_batch"];
@@ -163,9 +171,15 @@ Error MatrixClient::_sync(int timeout_ms) {
       emit_signal("invited_to_room", (Dictionary)invite_rooms[invite_rooms_keys[i]]);
     }
 
-    return Error::OK;
+    return MATRIX_OK;
+  } else if (http_status == 403) {
+    ERR_PRINT("Forbidden Matrix request!");
+    return MATRIX_UNAUTHORIZED;
+  } else if (http_status == 429) {
+    ERR_PRINT("Ratelimited from Matrix server!");
+    return MATRIX_RATELIMITED;
   } else {
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }
 
@@ -219,13 +233,23 @@ Error MatrixClient::register_account(Variant username, String password, bool gue
     Dictionary response = response_v;
     auth_token = response["access_token"];
     user_id = response["user_id"];
-    return Error::OK;
+    return MATRIX_OK;
   } else if (http_status == 401) {
     ERR_PRINT("Homeserver requires additional authentication information, not implemented yet");
-    return Error::ERR_UNAVAILABLE;
-  } else {
+    return MATRIX_NOT_IMPLEMENTED;
+  } else if (http_status == 400) {
+    ERR_PRINT("Invalid registration request");
     ERR_PRINT(JSON::print(response_v).utf8().get_data());
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_INVALID_REQUEST;
+  } else if (http_status == 429) {
+    ERR_PRINT("Registration request was ratelimited");
+    return MATRIX_RATELIMITED;
+  } else if (http_status == 403) {
+    ERR_PRINT("Registration not allowed!");
+    return MATRIX_UNAUTHORIZED;
+  } else {
+    ERR_PRINT("Unrecognized Matrix error received!");
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }  
 
@@ -242,21 +266,36 @@ Error MatrixClient::login(String username, String password) {
     Dictionary response = response_v;
     auth_token = response["access_token"];
     user_id = "@"+username+":"+hs_name;
-    return Error::OK;
+    return MATRIX_OK;
+  } else if (http_status == 400) {
+    ERR_PRINT("Invalid login request");
+    ERR_PRINT(JSON::print(response_v).utf8().get_data());
+    return MATRIX_INVALID_REQUEST;
+  } else if (http_status == 403) {
+    ERR_PRINT("Login failed");
+    return MATRIX_UNAUTHORIZED;
+  } else if (http_status == 429) {
+    ERR_PRINT("Login request was ratelimited");
+    return MATRIX_RATELIMITED;
   } else {
-    return Error::ERR_QUERY_FAILED;
+    ERR_PRINT("Unrecognized Matrix error received!");
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }  
 
 Error MatrixClient::logout() {
   if (auth_token.length() == 0) {
-    return Error::ERR_UNCONFIGURED;
+    ERR_PRINT("Not logged in!");
+    return MATRIX_UNAUTHENTICATED;
   }
   HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/logout", Dictionary(), HTTPClient::Method::METHOD_POST);
   if (http_status == 200) {
-    return Error::OK;
+    auth_token = String();
+    user_id = String();
+    return MATRIX_OK;
   } else {
-    return Error::ERR_QUERY_FAILED;
+    ERR_PRINT("Unrecognized Matrix error received!");
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }
 
@@ -300,7 +339,7 @@ Error MatrixClient::_listen_forever(Variant userdata=NULL) {
     }
     //TODO: either retry or return an error depending on the kind of sync error
   }
-  return Error::OK;
+  return MATRIX_OK;
 }
 
 Variant MatrixClient::create_room(String alias, bool is_public, Array invitees) {
@@ -340,11 +379,11 @@ Variant MatrixClient::create_room(String alias, bool is_public, Array invitees) 
 Variant MatrixClient::join_room(String room_id_or_alias) {
   if (hs_name.length() == 0 || auth_token.length() == 0) {
     WARN_PRINT("Not connected and authenticated to a homeserver!");
-    return false;
+    return MATRIX_UNAUTHENTICATED;
   }
 
   Variant response_v;
-  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/join/"+room_id_or_alias, Dictionary(), HTTPClient::Method::METHOD_POST, response_v);
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/join/"+room_id_or_alias.http_escape(), Dictionary(), HTTPClient::Method::METHOD_POST, response_v);
   Dictionary response = response_v;
   
   if (http_status == 200) {
@@ -354,11 +393,34 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
     return room;
   } else if (http_status == 403) {
     WARN_PRINT("Not allowed to join room!");
-    return false;
+    return MATRIX_UNAUTHORIZED;
   } else {
     WARN_PRINT("Unable to join room!");
     print_line(String::num_int64(http_status));
-    return false;
+    return MATRIX_UNABLE;
+  }
+}
+
+Variant MatrixClient::leave_room(String room_id) {
+  print_line(room_id);
+  if (hs_name.length() == 0 || auth_token.length() == 0) {
+    WARN_PRINT("Not connected and authenticated to a homeserver!");
+    return MATRIX_UNAUTHENTICATED;
+  }
+
+  Variant response_v;
+  HTTPClient::ResponseCode http_status = request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/leave", Dictionary(), HTTPClient::Method::METHOD_POST, response_v);
+  
+  if (http_status == 200) {
+    rooms.erase(room_id);
+    return MATRIX_OK;
+  } else if (http_status == 403) {
+    WARN_PRINT("Can't leave room, not a member!");
+    return MATRIX_UNAUTHORIZED;
+  } else {
+    WARN_PRINT("Unable to leave room!");
+    print_line(String::num_int64(http_status));
+    return MATRIX_UNABLE;
   }
 }
 
@@ -371,8 +433,7 @@ Variant MatrixClient::get_user(String id) {
 
 Variant MatrixClient::get_me() {
   return get_user(user_id);
-}
-  
+} 
 
 void MatrixClient::_bind_methods() {
   ClassDB::bind_method("set_hs_name", &MatrixClient::set_hs_name);
@@ -400,6 +461,7 @@ void MatrixClient::_bind_methods() {
 
   ClassDB::bind_method("create_room", &MatrixClient::create_room);
   ClassDB::bind_method("join_room", &MatrixClient::join_room);
+  ClassDB::bind_method("leave_room", &MatrixClient::leave_room);
 
   ClassDB::bind_method("get_user", &MatrixClient::get_user);
   ClassDB::bind_method("get_me", &MatrixClient::get_me);

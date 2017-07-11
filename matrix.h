@@ -12,6 +12,16 @@
 class MatrixRoom;
 class MatrixUser;
 
+#define MATRIX_OK               Error::OK               //request completed successfully
+#define MATRIX_CANT_CONNECT     Error::ERR_CANT_CONNECT //not able to connect to homeserver
+#define MATRIX_UNAUTHENTICATED  Error::ERR_UNCONFIGURED //request requires authentication
+#define MATRIX_UNAUTHORIZED     Error::ERR_UNAUTHORIZED //not allowed to do this
+#define MATRIX_UNABLE           Error::FAILED           //request is not possible to fulfill
+#define MATRIX_RATELIMITED      Error::ERR_BUSY         //too many requests, you are ratelimited
+#define MATRIX_INVALID_REQUEST  Error::ERR_INVALID_DATA //request contained invalid data
+#define MATRIX_INVALID_RESPONSE Error::ERR_PARSE_ERROR  //response contained invalid data
+#define MATRIX_NOT_IMPLEMENTED  Error::ERR_BUG          //action is not yet implemented in this library
+
 class MatrixClient : public Node {
   friend class MatrixRoom;
   friend class MatrixUser;
@@ -68,6 +78,7 @@ public:
 
   Variant create_room(String alias=String(), bool is_public=false, Array invitees = Array());
   Variant join_room(String room_id_or_alias);
+  Variant leave_room(String room_id);
 
   //Variant upload(PoolByteArray data, String content_type); TODO: :-D
  

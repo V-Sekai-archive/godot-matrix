@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=7 format=2]
 
-[ext_resource path="res://icon.png" type="Texture" id=1]
+[ext_resource path="res://AndroidEmoji.ttf" type="DynamicFontData" id=1]
+[ext_resource path="res://NotoSans-Regular.ttf" type="DynamicFontData" id=2]
+[ext_resource path="res://icon.png" type="Texture" id=3]
 
-[sub_resource type="GDScript" id=3]
+[sub_resource type="GDScript" id=1]
 
 script/source = "extends Panel
 
@@ -26,7 +28,15 @@ func _ready():
 func resized():
 	set_custom_minimum_size(Vector2(0, 50+get_node(\"message\").get_custom_minimum_size().y-get_node(\"message\").get_line_height()))"
 
-[sub_resource type="GDScript" id=2]
+[sub_resource type="DynamicFont" id=2]
+
+size = 15
+use_mipmaps = false
+use_filter = false
+font_data = ExtResource( 2 )
+fallback/0 = ExtResource( 1 )
+
+[sub_resource type="GDScript" id=3]
 
 script/source = "extends Label
 
@@ -51,7 +61,7 @@ rect_min_size = Vector2( 0, 50 )
 rect_clip_content = false
 mouse_filter = 0
 size_flags_horizontal = 3
-script = SubResource( 3 )
+script = SubResource( 1 )
 sender_name = ""
 message_text = ""
 
@@ -81,12 +91,13 @@ rect_min_size = Vector2( 0, 20 )
 rect_clip_content = false
 mouse_filter = 2
 size_flags_vertical = 3
+custom_fonts/font = SubResource( 2 )
 autowrap = true
 clip_text = true
 percent_visible = 1.0
 lines_skipped = 0
 max_lines_visible = -1
-script = SubResource( 2 )
+script = SubResource( 3 )
 
 [node name="TextureRect" type="TextureRect" parent="."]
 
@@ -96,7 +107,7 @@ margin_right = 40.0
 margin_bottom = 40.0
 rect_clip_content = false
 mouse_filter = 1
-texture = ExtResource( 1 )
+texture = ExtResource( 3 )
 expand = true
 stretch_mode = 0
 

@@ -26,7 +26,7 @@ void MatrixRoom::_put_ephemeral_event(Dictionary event) {
 
 Error MatrixRoom::_process_state_event(Dictionary event) {
   if (!event.has("type")) {
-    return Error::ERR_INVALID_DATA;
+    return MATRIX_INVALID_RESPONSE;
   }
 
   String event_type = event["type"];
@@ -59,7 +59,7 @@ Error MatrixRoom::_process_state_event(Dictionary event) {
 
   emit_signal("state_event", event);
 
-  return Error::OK;
+  return MATRIX_OK;
 }
 
 String MatrixRoom::get_name(bool sync) {
@@ -122,10 +122,10 @@ Error MatrixRoom::get_old_events(int num_events) {
     for (int i=0; i<events.size(); i++) {
       _put_old_event(events[i]);
     }
-    return Error::OK;
+    return MATRIX_OK;
   } else {
     WARN_PRINT("Unable to get old events!");
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_UNABLE;
   }
 }
 
@@ -134,20 +134,49 @@ Dictionary MatrixRoom::get_aliases() const {
 }
 
 Error MatrixRoom::send_text_message(String text) {
-  //this is just to generate a unique ID for every message sent from this client, not some kind of timestamp
-  String txn_id = String::num_int64((OS::get_singleton()->get_unix_time()*1000)+OS::get_singleton()->get_ticks_msec());
-
   Dictionary request_body = Dictionary();
   request_body["msgtype"] = "m.text";
   request_body["body"] = text;
 
-  print_line(JSON::print(request_body));
+  return send_event("m.text", request_body);
+}
+
+Error MatrixRoom::send_event(String msgtype, Dictionary event) {
+  //this is just to generate a unique ID for every message sent from this client, not some kind of reliable timestamp or anything
+  String txn_id = String::num_int64((OS::get_singleton()->get_unix_time()*1000)+(OS::get_singleton()->get_ticks_msec()%1000));
+
+  Dictionary request_body = event;
+  event["msgtype"] = msgtype;
+
   HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/m.room.message/"+txn_id, request_body, HTTPClient::Method::METHOD_PUT);
   
   if (status == 200) {
-    return Error::OK;
+    return MATRIX_OK;
+  } else if (status == 403) {
+    ERR_PRINT("Not allowed to send event");
+    return MATRIX_UNAUTHORIZED;
   } else {
-    return Error::ERR_QUERY_FAILED;
+    return MATRIX_NOT_IMPLEMENTED;
+  }
+}
+
+Error MatrixRoom::set_typing(bool typing, int timeout_ms) {
+  Dictionary request_body;
+  request_body["typing"] = typing;
+  request_body["timeout"] = timeout_ms;
+  
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/typing/"+client->get_user_id().http_escape(), request_body, HTTPClient::Method::METHOD_PUT);
+
+  if (status == 200) {
+    return MATRIX_OK;
+  } else if (status == 403) {
+    ERR_PRINT("Not allowed to set typing status");
+    return MATRIX_UNAUTHORIZED;
+  } else if (status == 429) {
+    ERR_PRINT("Ratelimited");
+    return MATRIX_RATELIMITED;
+  } else {
+    return MATRIX_NOT_IMPLEMENTED;
   }
 }
 
@@ -209,6 +238,10 @@ Variant MatrixRoom::state_sync() {
   return state_thread;
 }
 
+Variant MatrixRoom::leave_room() {
+  return client->leave_room(room_id);
+}
+
 MatrixRoom::MatrixRoom() {
 }
 
@@ -233,6 +266,8 @@ void MatrixRoom::_bind_methods() {
 
   ClassDB::bind_method("_state_sync", &MatrixRoom::_state_sync);
   ClassDB::bind_method("state_sync", &MatrixRoom::state_sync);
+  
+  ClassDB::bind_method("leave_room", &MatrixRoom::leave_room);
 
   ADD_SIGNAL( MethodInfo("timeline_event") );     //new event inserted at most recent point in timeline
   ADD_SIGNAL( MethodInfo("old_timeline_event") ); //old event inserted at beginning of timeline
