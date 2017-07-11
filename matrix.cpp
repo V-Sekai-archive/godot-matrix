@@ -402,7 +402,6 @@ Variant MatrixClient::join_room(String room_id_or_alias) {
 }
 
 Variant MatrixClient::leave_room(String room_id) {
-  print_line(room_id);
   if (hs_name.length() == 0 || auth_token.length() == 0) {
     WARN_PRINT("Not connected and authenticated to a homeserver!");
     return MATRIX_UNAUTHENTICATED;
