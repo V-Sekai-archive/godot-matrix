@@ -1,7 +1,5 @@
 # Godot Engine module for interacting with the Matrix protocol
 
-_Warning! As of 2017-03-22, this module is unfinished and many important pieces still don't exist! Use at own risk, and beware that many features simply don't exist yet._
-
 This is a module for integrating a [Matrix](https://matrix.org) client into your Godot game. You can use it for building a chat service into your game, matchmaking/lobbies, or whatever else you can come up with!
 
 Matrix is an open protocol and network which can be used for persistent communication (for example IM).
@@ -27,6 +25,8 @@ You will receive all the events as signals (the signals will be emitted with the
 The format of the `Dictionary` you receive in all of these signals is a Matrix `Event`, as specified in the [Matrix client-server API spec](https://matrix.org/docs/spec/client_server/r0.2.0.html).
 
 You can call `.get_rooms()` on the `MatrixClient` to get all the rooms it is currently a member of. This is a dictionary mapping of room IDs to `MatrixRoom`s. If you only want to receive signals from one room instead of from all rooms, you can connect to `timeline_event`, `state_event`, and `ephemeral_event` on an individual `MatrixRoom` instead of on the `MatrixClient`. They behave the same way as described above.
+
+You can leave a room using either the `.leave_room(String room_id)` method on the `MatrixClient`, or by calling `.leave_room()` on a `MatrixRoom`.
 
 Sending events and state changes, and interacting with the server etc. is still very much a **work-in-progress**. Currently you can send text messages, by calling `.send_text_message(String text)` on a `MatrixRoom`.
 
