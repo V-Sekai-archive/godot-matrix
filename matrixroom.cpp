@@ -141,14 +141,12 @@ Error MatrixRoom::send_text_message(String text) {
   return send_event("m.text", request_body);
 }
 
-Error MatrixRoom::send_event(String msgtype, Dictionary event) {
-  //this is just to generate a unique ID for every message sent from this client, not some kind of reliable timestamp or anything
+Error MatrixRoom::send_event(String event_type, Dictionary event) {
   String txn_id = String::num_int64((OS::get_singleton()->get_unix_time()*1000)+(OS::get_singleton()->get_ticks_msec()%1000));
 
   Dictionary request_body = event;
-  event["msgtype"] = msgtype;
 
-  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/m.room.message/"+txn_id, request_body, HTTPClient::Method::METHOD_PUT);
+  HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/send/"+event_type+"/"+txn_id, request_body, HTTPClient::Method::METHOD_PUT);
   
   if (status == 200) {
     return MATRIX_OK;

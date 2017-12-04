@@ -57,7 +57,7 @@ public:
   Variant state_sync();
 
   Error send_text_message(String text);
-  Error send_event(String msgtype, Dictionary event);
+  Error send_event(String event_type, Dictionary event);
 
   Error set_typing(bool typing, int timeout_ms);
 
