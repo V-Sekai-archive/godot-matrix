@@ -102,6 +102,7 @@ String MatrixRoom::get_topic(bool sync) {
   return topic;
 }
 
+B
 Array MatrixRoom::get_events() const {
   return events;
 }
@@ -134,11 +135,12 @@ Dictionary MatrixRoom::get_aliases() const {
 }
 
 Error MatrixRoom::send_text_message(String text) {
+    B
   Dictionary request_body = Dictionary();
   request_body["msgtype"] = "m.text";
   request_body["body"] = text;
 
-  return send_event("m.text", request_body);
+  return send_event("m.room.message", request_body);
 }
 
 Error MatrixRoom::send_event(String event_type, Dictionary event) {
