@@ -33,7 +33,7 @@ class MatrixClient : public Node {
   String sync_token;
   String user_id;
 
-  _Thread listener_thread;
+  Thread* listener_thread;
 
   bool should_listen = true;
 
@@ -46,6 +46,8 @@ class MatrixClient : public Node {
 
   HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, Variant &response_body, bool auth=true);
   HTTPClient::ResponseCode request_json(String endpoint, Dictionary body, HTTPClient::Method method, bool auth=true);
+
+  static void _listen_forever(void *m);
 
 protected:
   static void _bind_methods();
@@ -74,7 +76,7 @@ public:
   Error stop_listening();
 
   Error _sync(int timeout_ms=30000);
-  Error _listen_forever(Variant userdata);
+  Error _listen_forever();
 
   Variant create_room(String alias=String(), bool is_public=false, Array invitees = Array());
   Variant join_room(String room_id_or_alias);

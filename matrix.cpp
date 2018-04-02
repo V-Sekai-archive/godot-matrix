@@ -147,7 +147,7 @@ Error MatrixClient::_sync(int timeout_ms) {
         event["room_id"] = join_rooms_keys[i];
         room->_put_event(event);
 
-        if (event["type"] == "m.room.name" || event["type"] == "m.room.topic") { //TODO: is this a hack or how it's supposed to be?
+        if (event["type"] == "m.room.name" || event["type"] == "m.room.topic" || event["type"] == "m.room.member") { //TODO: is this a hack or how it's supposed to be?
           room->_process_state_event(event);
           emit_signal("state_event", event);
         }
@@ -300,9 +300,9 @@ Error MatrixClient::logout() {
 }
 
 Error MatrixClient::start_listening() {
-  if (!listener_thread.is_active()) {
-    _sync();
-    listener_thread.start(this, "_listen_forever");
+  if (!listener_thread) {
+    _sync();    
+    listener_thread = Thread::create(_listen_forever, this);
     return Error::OK;
   } else {
     return Error::ERR_ALREADY_IN_USE;
@@ -310,20 +310,27 @@ Error MatrixClient::start_listening() {
 }
 
 bool MatrixClient::is_listening() {
-  return listener_thread.is_active();
+  return listener_thread;
 }
 
 Error MatrixClient::stop_listening() {
-  if (listener_thread.is_active()) {
+  if (listener_thread) {
     should_listen = false;
-    listener_thread.wait_to_finish();
+    Thread::wait_to_finish(listener_thread);
+    memdelete(listener_thread);
+    listener_thread = NULL;
     return Error::OK;
   } else {
     return Error::ERR_ALREADY_IN_USE;
   }
 }
 
-Error MatrixClient::_listen_forever(Variant userdata=NULL) {
+void MatrixClient::_listen_forever(void *m) {
+    MatrixClient *self = (MatrixClient *)m;
+    self->_listen_forever();
+}
+
+Error MatrixClient::_listen_forever() {
   const int timeout_ms = 30000;
   int bad_sync_timeout = 5000;
   should_listen = true;
@@ -455,7 +462,6 @@ void MatrixClient::_bind_methods() {
   ClassDB::bind_method("start_listening", &MatrixClient::start_listening);
   ClassDB::bind_method("is_listening", &MatrixClient::is_listening);
   ClassDB::bind_method("stop_listening", &MatrixClient::stop_listening);
-  ClassDB::bind_method("_listen_forever", &MatrixClient::_listen_forever);
   ClassDB::bind_method("get_rooms", &MatrixClient::get_rooms);
 
   ClassDB::bind_method("create_room", &MatrixClient::create_room);
@@ -473,4 +479,5 @@ void MatrixClient::_bind_methods() {
 }
 
 MatrixClient::MatrixClient() {
+    listener_thread = NULL;
 }
