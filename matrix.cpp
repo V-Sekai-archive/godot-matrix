@@ -1,6 +1,6 @@
 #include "matrix.h"
 
-#include "io/json.h"
+#include "core/io/json.h"
 
 HTTPClient::ResponseCode MatrixClient::request(HTTPClient &client, String endpoint, String body, HTTPClient::Method method, String &response_body) {
   client.poll();
@@ -60,6 +60,7 @@ HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary 
   String body_json;
   if (!body.empty()) {
     body_json = JSON::print(body);
+
   }
   String response_json;
   String e =  endpoint+(endpoint.find("?")==-1?"?":"&")+(auth?"access_token="+auth_token:String());
@@ -70,7 +71,7 @@ HTTPClient::ResponseCode MatrixClient::request_json(String endpoint, Dictionary 
     String r_err_str;
     int32_t r_err_line;
     Error parse_err = JSON::parse(response_json, response_variant, r_err_str, r_err_line);
-    if (parse_err) { WARN_PRINT("JSON parsing error! "+parse_err); }
+    if (parse_err) { WARN_PRINT("JSON parsing error! "+itos(parse_err)); }
     response_body = response_variant;
   }
 
@@ -300,9 +301,9 @@ Error MatrixClient::logout() {
 }
 
 Error MatrixClient::start_listening() {
-  if (!listener_thread) {
+  if (!listener_thread.is_started()) {
     _sync();    
-    listener_thread = Thread::create(_listen_forever, this);
+    listener_thread.start(_listen_forever, this);
     return Error::OK;
   } else {
     return Error::ERR_ALREADY_IN_USE;
@@ -310,15 +311,13 @@ Error MatrixClient::start_listening() {
 }
 
 bool MatrixClient::is_listening() {
-  return listener_thread;
+  return listener_thread.is_started();
 }
 
 Error MatrixClient::stop_listening() {
-  if (listener_thread) {
+  if (listener_thread.is_started()) {
     should_listen = false;
-    Thread::wait_to_finish(listener_thread);
-    memdelete(listener_thread);
-    listener_thread = NULL;
+    listener_thread.wait_to_finish();
     return Error::OK;
   } else {
     return Error::ERR_ALREADY_IN_USE;
@@ -479,5 +478,4 @@ void MatrixClient::_bind_methods() {
 }
 
 MatrixClient::MatrixClient() {
-    listener_thread = NULL;
 }

@@ -33,7 +33,7 @@ class MatrixClient : public Node {
   String sync_token;
   String user_id;
 
-  Thread* listener_thread;
+  Thread listener_thread;
 
   bool should_listen = true;
 

@@ -1,5 +1,5 @@
 #include "matrixuser.h"
-#include "io/json.h"
+#include "core/io/json.h"
 
 String MatrixUser::get_display_name(bool sync) {
   if (sync) {

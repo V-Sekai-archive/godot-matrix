@@ -1,6 +1,6 @@
 #include "matrixroom.h"
 
-#include "io/json.h"
+#include "core/io/json.h"
 
 void MatrixRoom::_put_event(Dictionary event) {
   if (!event_ids.has(event["event_id"])) {
@@ -205,7 +205,7 @@ String MatrixRoom::get_member_display_name(String id, bool sync) {
     HTTPClient::ResponseCode status = client->request_json("/_matrix/client/r0/rooms/"+room_id.http_escape()+"/state/m.room.member/"+id.http_escape(), Dictionary(), HTTPClient::Method::METHOD_GET, response_v);
     if (status == 200) {
       Dictionary response = response_v;
-      print_line(JSON::print(response));
+      print_line(JSON::print(response_v));
       members[id] = response;
     } else if (status == 404) {
       WARN_PRINT("Tried to look up non-existent room member!");

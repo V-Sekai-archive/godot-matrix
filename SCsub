@@ -8,7 +8,7 @@ sources = [
 ]
 
 module_env = env.Clone()
-module_env.Append(CXXFLAGS=['-O2', '-std=c++11'])
+#module_env.Append(CXXFLAGS=['-O2', '-std=c++11'])
 
 if ARGUMENTS.get('matrix_shared', 'no') == 'yes':
     module_env.Append(CXXFLAGS='-fPIC')
