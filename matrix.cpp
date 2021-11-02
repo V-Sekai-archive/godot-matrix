@@ -14,6 +14,7 @@ HTTPClient::ResponseCode MatrixClient::request(HTTPClient &client, String endpoi
     String scheme;
     String path;
     int port = -1;
+    bool use_tls = true;
     hs_name.parse_url(scheme, host, port, path);
     if (port == -1){
       if (scheme == "https://") {
@@ -24,7 +25,11 @@ HTTPClient::ResponseCode MatrixClient::request(HTTPClient &client, String endpoi
       exit(1);
       }
     }
-    client.connect_to_host(scheme+host, port, true, true);
+    if (scheme == "http://") {
+      use_tls = false;
+      WARN_PRINT("disabling tls for http request");
+    }
+    client.connect_to_host(scheme+host, port, use_tls, true);
   }
 
   while (client.get_status()!=HTTPClient::Status::STATUS_CONNECTED) {
