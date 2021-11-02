@@ -2,94 +2,37 @@
 
 [ext_resource path="res://theme.tres" type="Theme" id=1]
 [ext_resource path="res://roomview.tscn" type="PackedScene" id=2]
-
-[sub_resource type="GDScript" id=1]
-
-script/source = "extends Node
-
-#var room_view = preload(\"res://roomview.tscn\")
-#var room_views = {}
-
-func _ready():
-	get_node(\"Control/MatrixClient\").login(\"godot_test\", \"(/1#4zzT^P\")
-	get_node(\"Control/MatrixClient\").start_listening()
-	#get_node(\"client view/room view\").set_room(get_node(\"MatrixClient\").get_rooms()[\"!RtOeFVSpNUJHGLYYTh:vurpo.fi\"])
-	
-	var tree = get_node(\"Control/client view/room list/Tree\")
-	tree.set_select_mode(Tree.SELECT_SINGLE)
-	var root = tree.create_item()
-	tree.set_hide_root(true)
-	var rooms = tree.create_item(root)
-	rooms.set_text(0, \"Rooms\")
-	
-	for room_id in get_node(\"Control/MatrixClient\").get_rooms():
-		var room_ = tree.create_item(rooms)
-		room_.set_text(0, get_node(\"Control/MatrixClient\").get_rooms()[room_id].get_friendly_name(true))
-		room_.set_metadata(0, room_id)
-	
-	tree.connect(\"cell_selected\", self, \"cell_selected\")
-
-func cell_selected():
-	var tree = get_node(\"Control/client view/room list/Tree\")
-	if (tree.get_selected().get_parent().get_text(0) == \"Rooms\"):
-		#var room = room_view.instance(true)
-		#get_node(\"client view\").get_children()[1].replace_by(room)#_views[tree.get_selected().get_metadata(0)])
-		var room = get_node(\"Control/client view/Room view\")
-		room.set_room(get_node(\"Control/MatrixClient\").get_rooms()[tree.get_selected().get_metadata(0)])
-		room.room.state_sync()"
+[ext_resource path="res://Main.gd" type="Script" id=3]
 
 [node name="Node" type="Control"]
-
-anchor_right = 1
-anchor_bottom = 1
-rect_clip_content = false
-mouse_filter = 0
-script = SubResource( 1 )
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource( 3 )
 
 [node name="Control" type="Container" parent="."]
-
-anchor_right = 1
-anchor_bottom = 1
-rect_clip_content = false
-mouse_filter = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="MatrixClient" type="MatrixClient" parent="Control"]
-
-hs_name = "https://vurpo.fi"
-auth_token = ""
-sync_token = ""
-user_id = ""
+hs_name = "http://127.0.0.1:6167"
 
 [node name="client view" type="HSplitContainer" parent="Control"]
-
-anchor_right = 1
-anchor_bottom = 1
-rect_clip_content = false
-mouse_filter = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
 theme = ExtResource( 1 )
 split_offset = 256
-collapsed = false
-dragger_visibility = 0
 
 [node name="room list" type="Panel" parent="Control/client view"]
-
 margin_right = 256.0
 margin_bottom = 600.0
-rect_clip_content = false
-mouse_filter = 0
 
 [node name="Tree" type="Tree" parent="Control/client view/room list"]
-
-anchor_right = 1
-anchor_bottom = 1
-mouse_filter = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
 
 [node name="Room view" parent="Control/client view" instance=ExtResource( 2 )]
-
-anchor_right = 0
-anchor_bottom = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
 margin_left = 268.0
 margin_right = 1024.0
 margin_bottom = 600.0
-
-
