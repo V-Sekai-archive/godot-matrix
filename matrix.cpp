@@ -10,7 +10,21 @@ HTTPClient::ResponseCode MatrixClient::request(HTTPClient &client, String endpoi
       client.get_status() == HTTPClient::Status::STATUS_CONNECTION_ERROR ||
       client.get_status() == HTTPClient::Status::STATUS_SSL_HANDSHAKE_ERROR
       ) {
-    client.connect_to_host(hs_name, 443, true, true);
+    String host;
+    String scheme;
+    String path;
+    int port = -1;
+    hs_name.parse_url(scheme, host, port, path);
+    if (port == -1){
+      if (scheme == "https://") {
+        port = 443;
+      } else if (scheme == "http://") {
+        port = 80;
+      } else {
+      exit(1);
+      }
+    }
+    client.connect_to_host(scheme+host, port, true, true);
   }
 
   while (client.get_status()!=HTTPClient::Status::STATUS_CONNECTED) {
