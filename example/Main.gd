@@ -4,6 +4,7 @@ extends Node
 #var room_views = {}
 
 func _ready():
+	print ("trying to connect to: ", $Control/MatrixClient.hs_name)
 	get_node("Control/MatrixClient").login("coolperson", "cool")
 	get_node("Control/MatrixClient").start_listening()
 	#get_node("client view/room view").set_room(get_node("MatrixClient").get_rooms()["!RtOeFVSpNUJHGLYYTh:vurpo.fi"])
