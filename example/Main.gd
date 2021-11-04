@@ -1,33 +1,31 @@
 extends Node
 
-#var room_view = preload("res://roomview.tscn")
-#var room_views = {}
+onready var m_client = $MatrixClient
+#onready var room_tree =  $"client view/room list/Tree"
+onready var room_tree =  find_node("ROOM_TREE")
+onready var room_view =  find_node("ROOM_VIEW")
 
 func _ready():
-	print ("trying to connect to: ", $Control/MatrixClient.hs_name)
-	get_node("Control/MatrixClient").login("coolperson", "cool")
-	get_node("Control/MatrixClient").start_listening()
-	#get_node("client view/room view").set_room(get_node("MatrixClient").get_rooms()["!RtOeFVSpNUJHGLYYTh:vurpo.fi"])
+	print ("trying to connect to: ", m_client.hs_name)
+	m_client.login("coolperson", "cool")
+	m_client.start_listening()
 	
-	var tree = get_node("Control/client view/room list/Tree")
-	tree.set_select_mode(Tree.SELECT_SINGLE)
-	var root = tree.create_item()
-	tree.set_hide_root(true)
-	var rooms = tree.create_item(root)
+	room_tree.set_select_mode(Tree.SELECT_SINGLE)
+	var root = room_tree.create_item()
+	room_tree.set_hide_root(true)
+	var rooms = room_tree.create_item(root)
 	rooms.set_text(0, "Rooms")
 	
-	for room_id in get_node("Control/MatrixClient").get_rooms():
-		var room_ = tree.create_item(rooms)
-		room_.set_text(0, get_node("Control/MatrixClient").get_rooms()[room_id].get_friendly_name(true))
+	for room_id in m_client.get_rooms():
+		var room_ = room_tree.create_item(rooms)
+		room_.set_text(0, m_client.get_rooms()[room_id].get_friendly_name(true))
 		room_.set_metadata(0, room_id)
 	
-	tree.connect("cell_selected", self, "cell_selected")
+	room_tree.connect("cell_selected", self, "roomlist_room_selected")
 
-func cell_selected():
-	var tree = get_node("Control/client view/room list/Tree")
-	if (tree.get_selected().get_parent().get_text(0) == "Rooms"):
-		#var room = room_view.instance(true)
-		#get_node("client view").get_children()[1].replace_by(room)#_views[tree.get_selected().get_metadata(0)])
-		var room = get_node("Control/client view/Room view")
-		room.set_room(get_node("Control/MatrixClient").get_rooms()[tree.get_selected().get_metadata(0)])
-		room.room.state_sync()
+func roomlist_room_selected():
+	print("roomlist_room_selected called")
+	var selected_item = room_tree.get_selected()
+	if (selected_item.get_parent().get_text(0) == "Rooms"):
+		room_view.set_room(m_client.get_rooms()[selected_item.get_metadata(0)])
+		room_view.room.state_sync()
