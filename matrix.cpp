@@ -1,5 +1,6 @@
 #include "matrix.h"
 
+#include "core/dictionary.h"
 #include "core/io/json.h"
 
 HTTPClient::ResponseCode MatrixClient::request(HTTPClient &client, String endpoint, String body, HTTPClient::Method method, String &response_body) {
@@ -274,9 +275,12 @@ Error MatrixClient::register_account(Variant username, String password, bool gue
 }  
 
 Error MatrixClient::login(String username, String password) {
+  Dictionary identifier = Dictionary();
+  identifier["type"] = "m.id.user";
+  identifier["user"] = username;
   Dictionary request_body = Dictionary();
+  request_body["identifier"] = identifier;
   request_body["type"] = "m.login.password";
-  request_body["user"] = username;
   request_body["password"] = password;
 
   Variant response_v;
