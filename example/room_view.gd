@@ -37,15 +37,15 @@ func clear():
 		room.disconnect("state_event", self, "state_event")
 	
 func _ready():
-	get_node("messages/_v_scroll").connect("changed", self, "scrollbar_changed")
-	get_node("messages/_v_scroll").connect("value_changed", self, "scrollbar_value_changed")
+	get_node("messages").get_v_scrollbar().connect("changed", self, "scrollbar_changed")
+	get_node("messages").get_v_scrollbar().connect("value_changed", self, "scrollbar_value_changed")
 	get_node("leave_button").connect("button_up", self, "leave_room")
 
 func leave_room():
 	room.leave_room()
 
-func scrollbar_changed(v):
-	var scrollbar = get_node("messages/_v_scroll")
+func scrollbar_changed():
+	var scrollbar = get_node("messages").get_v_scrollbar()
 	if scrollbar.page >= get_node("messages/list").get_minimum_size().y:
 		scrolled_to_bottom = true
 	if scroll_to_bottom:
@@ -55,13 +55,13 @@ func scrollbar_changed(v):
 		scrollbar.set_value(scrollbar.max_value-scrollbar.page)
 
 func scrollbar_value_changed(v):
-	var scrollbar = get_node("messages/_v_scroll")
+	var scrollbar = get_node("messages").get_v_scrollbar()
 	scrolled_to_bottom = (scrollbar.max_value == 0 or scrollbar.value == scrollbar.max_value-scrollbar.page)
 	scrolled_to_top = scrollbar.value == 0
 
 func fetch_backfill(args=null):
 	while true:
-		var scrollbar = get_node("messages/_v_scroll")
+		var scrollbar = get_node("messages").get_v_scrollbar()
 		if room:
 			var dist_from_bottom = scrollbar.max_value-scrollbar.page-scrollbar.value
 			while scrollbar.page >= get_node("messages/list").get_minimum_size().y:
@@ -107,7 +107,7 @@ func add_event(event, old):
 	else:
 		get_node("messages/list").add_child(event)
 		get_node("messages/list").move_child(event, 0)
-		yield(get_node("messages/_v_scroll"), "changed")
+		yield(get_node("messages").get_v_scrollbar(), "changed")
 
 func __get_name(user_id):
 	return room.get_member_display_name(user_id, true)
