@@ -1,4 +1,4 @@
-extends Panel
+extends PanelContainer
 
 var preload_message = preload("res://message.tscn")
 
@@ -8,7 +8,15 @@ var scrolled_to_top = false
 
 var backfill_thread
 
-var room setget set_room
+var room: MatrixRoom setget set_room
+
+onready var room_name_label: Label = find_node("ROOM_NAME")
+onready var room_topic_label: Label = find_node("ROOM_TOPIC")
+onready var typing_indicator: Label = find_node("TYPING_INDICATOR")
+onready var message_box: LineEdit = find_node("MESSAGE_INPUT")
+onready var message_list: VBoxContainer = find_node("MESSAGE_LIST")
+onready var messages_scroller_box: ScrollContainer = find_node("MESSAGES")
+
 func set_room(r, c=true):
 	if (c):
 		clear()
@@ -22,14 +30,16 @@ func set_room(r, c=true):
 	room.state_sync().wait_to_finish()
 	for event in room.get_events():
 		process_timeline_event(event)
+	find_node("room_meta_line").visible = true
+	find_node("message_input_container").visible = true
 
 func clear():
-	get_node("room_name").set_text("")
-	get_node("room_topic").set_text("")
-	get_node("typing").set_text("")
-	get_node("messageboxcontainer/messagebox").set_text("")
-	for c in get_node("messages/list").get_children():
-		get_node("messages/list").remove_child(c)
+	for thing_to_clear in [room_name_label, room_topic_label, typing_indicator, message_box]:
+		thing_to_clear.text = ""
+	for c in message_list.get_children():
+		message_list.remove_child(c)
+	find_node("room_meta_line").visible = false
+	find_node("message_input_container").visible = false
 	if room:
 		room.disconnect("ephemeral_event", self, "ephemeral_event")
 		room.disconnect("timeline_event", self, "timeline_event")
@@ -37,16 +47,17 @@ func clear():
 		room.disconnect("state_event", self, "state_event")
 	
 func _ready():
-	get_node("messages").get_v_scrollbar().connect("changed", self, "scrollbar_changed")
-	get_node("messages").get_v_scrollbar().connect("value_changed", self, "scrollbar_value_changed")
-	get_node("leave_button").connect("button_up", self, "leave_room")
+	messages_scroller_box.get_v_scrollbar().connect("changed", self, "scrollbar_changed")
+	messages_scroller_box.get_v_scrollbar().connect("value_changed", self, "scrollbar_value_changed")
+	find_node("leave_button").connect("button_up", self, "leave_room")
+	clear()
 
 func leave_room():
 	room.leave_room()
 
 func scrollbar_changed():
-	var scrollbar = get_node("messages").get_v_scrollbar()
-	if scrollbar.page >= get_node("messages/list").get_minimum_size().y:
+	var scrollbar = messages_scroller_box.get_v_scrollbar()
+	if scrollbar.page >= message_list.get_minimum_size().y:
 		scrolled_to_bottom = true
 	if scroll_to_bottom:
 		scrollbar.set_value(scrollbar.max_value-scrollbar.page)
@@ -55,16 +66,16 @@ func scrollbar_changed():
 		scrollbar.set_value(scrollbar.max_value-scrollbar.page)
 
 func scrollbar_value_changed(v):
-	var scrollbar = get_node("messages").get_v_scrollbar()
+	var scrollbar = messages_scroller_box.get_v_scrollbar()
 	scrolled_to_bottom = (scrollbar.max_value == 0 or scrollbar.value == scrollbar.max_value-scrollbar.page)
 	scrolled_to_top = scrollbar.value == 0
 
 func fetch_backfill(args=null):
 	while true:
-		var scrollbar = get_node("messages").get_v_scrollbar()
+		var scrollbar = messages_scroller_box.get_v_scrollbar()
 		if room:
 			var dist_from_bottom = scrollbar.max_value-scrollbar.page-scrollbar.value
-			while scrollbar.page >= get_node("messages/list").get_minimum_size().y:
+			while scrollbar.page >= message_list.get_minimum_size().y:
 				room.get_old_events(1)
 				yield(scrollbar, "changed")
 				scrollbar.set_value(scrollbar.max_value-scrollbar.page)
@@ -101,13 +112,13 @@ func process_timeline_event(e, old=false):
 
 func add_event(event, old):
 	if not old:
-		get_node("messages/list").add_child(event)
+		message_list.add_child(event)
 		if (scrolled_to_bottom):
 			scroll_to_bottom = true
 	else:
-		get_node("messages/list").add_child(event)
-		get_node("messages/list").move_child(event, 0)
-		yield(get_node("messages").get_v_scrollbar(), "changed")
+		message_list.add_child(event)
+		message_list.move_child(event, 0)
+		yield(messages_scroller_box.get_v_scrollbar(), "changed")
 
 func __get_name(user_id):
 	return room.get_member_display_name(user_id, true)
@@ -119,22 +130,22 @@ func old_timeline_event(event):
 	process_timeline_event(event, true)
 
 func send_message(text=""):
-	if (get_node("messageboxcontainer/messagebox").text != ""):
-		room.send_text_message(get_node("messageboxcontainer/messagebox").text)
-		get_node("messageboxcontainer/messagebox").clear()
+	if (message_box.text != ""):
+		room.send_text_message(message_box.text)
+		message_box.clear()
 
 func ephemeral_event(event):
 	if (event['type'] == "m.typing"):
 		if (event['content']['user_ids'].size() == 0):
-			get_node("typing").text = ""
+			typing_indicator.text = ""
 		elif (event['content']['user_ids'].size() == 1):
-			get_node("typing").text = event['content']['user_ids'][0] + " is typing"
+			typing_indicator.text = event['content']['user_ids'][0] + " is typing"
 		else:
 			var typing_text = String(event['content']['user_ids'])
 			typing_text = typing_text.substr(1, typing_text.length()-2)
 			
-			get_node("typing").text = typing_text + " are typing"
+			typing_indicator.text = typing_text + " are typing"
 
 func state_event(event):
-	get_node("room_name").set_text(room.get_name(false))
-	get_node("room_topic").set_text(room.get_topic(false))
+	room_name_label.text = room.get_name(false)
+	room_topic_label.text = room.get_topic(false)

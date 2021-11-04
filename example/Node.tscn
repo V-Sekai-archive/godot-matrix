@@ -1,6 +1,5 @@
-[gd_scene load_steps=4 format=2]
+[gd_scene load_steps=3 format=2]
 
-[ext_resource path="res://client_view.gd" type="Script" id=1]
 [ext_resource path="res://roomview.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Main.gd" type="Script" id=3]
 
@@ -18,16 +17,14 @@ hs_name = "http://127.0.0.1:6167"
 [node name="client_view" type="HSplitContainer" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-size_flags_horizontal = 2
-size_flags_vertical = 2
-split_offset = -700
-script = ExtResource( 1 )
+size_flags_horizontal = 3
+size_flags_vertical = 3
 __meta__ = {
 "_edit_use_anchors_": false
 }
 
 [node name="tree_container" type="PanelContainer" parent="client_view"]
-margin_right = 312.0
+margin_right = 335.0
 margin_bottom = 600.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -38,8 +35,10 @@ __meta__ = {
 [node name="ROOM_TREE" type="Tree" parent="client_view/tree_container"]
 margin_left = 7.0
 margin_top = 7.0
-margin_right = 305.0
+margin_right = 328.0
 margin_bottom = 593.0
+size_flags_horizontal = 3
+size_flags_vertical = 3
 __meta__ = {
 "_edit_use_anchors_": false
 }
@@ -47,6 +46,8 @@ __meta__ = {
 [node name="ROOM_VIEW" parent="client_view" instance=ExtResource( 2 )]
 anchor_right = 0.0
 anchor_bottom = 0.0
-margin_left = 324.0
+margin_left = 347.0
 margin_right = 1024.0
 margin_bottom = 600.0
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
