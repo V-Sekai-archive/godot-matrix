@@ -6,7 +6,7 @@ Matrix is an open protocol and network which can be used for persistent communic
 
 ## Usage
 
-(Note: when compiling, make sure that this folder is copied/linked to godot-source-dir/modules/matrix)
+(Note: when compiling, make sure that this folder is copied/linked to godot-source-dir/modules/matrix and that the godot branch 3.x is checked out (latest stable release probably works too))
 (Note 2: before release, do not forget to build export templates with tools=no and to export using them)
 (Note 3: currently, it hangs if it cannot connect to the server. You can change the server in the MatrixClient node in the tree or via script.)
 (Note 4: DO NOT use http for anything remote. For local testing conduit server is the easiest)
