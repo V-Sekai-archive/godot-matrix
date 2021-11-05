@@ -6,7 +6,8 @@ Matrix is an open protocol and network which can be used for persistent communic
 
 ## Usage
 
-(Note: when compiling, make sure that the folder is <godot source dir>/modules/matrix)
+(Note: when compiling, make sure that this folder is copied/linked to godot-source-dir/modules/matrix)
+(Note 2: before release, do not forget to build export templates with tools=no and to export using them)
 
 There is a new node called `MatrixClient`. This represents a client. Set the homeserver address in the inspector or using `.set_hs_name(String name)`, then either log in using `.login(String username, String password)` _or_ set the access token in the inspector or using `.set_auth_token(String token)`. When you login you will get an access token for a session, and if you save this access token, you'll be able to continue using the same session at a later point. If the client is logged in (has an access token), calling `.logout()` will log out the current session.
 
